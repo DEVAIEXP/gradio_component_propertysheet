@@ -4,7 +4,6 @@ from typing import Literal
 from gradio_propertysheet import PropertySheet
 
 # --- Main Configuration Dataclasses for the "Render Settings" Sheet ---
-
 @dataclass
 class ModelSettings:
     """Settings for loading models, VAEs, etc."""
@@ -80,6 +79,10 @@ class AdvancedSettings:
         default=False,
         metadata={"label": "Do not scale cond/uncond"}
     )
+    s_churn: int = field(
+        default=1,
+        metadata={"component": "number_integer", "minimum": 1, "maximum": 12, "label": "S_churn", "help": "S_churn value for generation."}
+    )
 
 @dataclass
 class ScriptSettings:
@@ -116,7 +119,6 @@ class RenderConfig:
     scripts: ScriptSettings = field(default_factory=ScriptSettings)
     advanced: AdvancedSettings = field(default_factory=AdvancedSettings)
 
-# --- Configuration for the Secondary Property Sheet ---
 
 @dataclass
 class Lighting:
@@ -140,11 +142,12 @@ initial_env_config = EnvironmentConfig()
 with gr.Blocks(title="PropertySheet Demo") as demo:
     gr.Markdown("# PropertySheet Component Demo")
     gr.Markdown("An example of a realistic application layout using the `PropertySheet` component as a sidebar for settings.")
-
+    gr.Markdown("<span>💻 <a href='https://github.com/DEVAIEXP/gradio_component_propertysheet'>Component GitHub Code</a></span>")
+    
     with gr.Row():
         # Main content area on the left
         with gr.Column(scale=3):
-            gr.Image(label="Main Viewport", height=500, value=None)
+            #gr.Image(label="Main Viewport", height=500, value=None)
             gr.Textbox(label="AI Prompt", lines=3, placeholder="Enter your prompt here...")
             gr.Button("Generate", variant="primary")
             with gr.Row():
@@ -167,7 +170,6 @@ with gr.Blocks(title="PropertySheet Demo") as demo:
             )
 
     # --- Event Handlers ---
-
     def handle_render_change(updated_config: RenderConfig | None):
         """Callback to process changes from the Render Settings sheet."""
         if updated_config is None:

@@ -1,41 +1,34 @@
----
-tags: [gradio-custom-component, ui, form, settings, dataclass]
-title: PropertySheet for Gradio
-short_description: A powerful component to create complex settings panels from Python dataclasses.
-colorFrom: blue
-colorTo: green
-sdk: gradio
-pinned: true
-app_file: space.py
----
 
+import gradio as gr
+from app import demo as app
+import os
+
+_docs = {'PropertySheet': {'description': 'A Gradio component that renders a dynamic UI from a Python dataclass instance.', 'members': {'__init__': {'value': {'type': 'typing.Optional[typing.Any][Any, None]', 'default': 'None', 'description': 'The initial dataclass instance to render.'}, 'label': {'type': 'str | None', 'default': 'None', 'description': 'The main label for the component, displayed in the accordion header.'}, 'visible': {'type': 'bool', 'default': 'True', 'description': 'If False, the component will be hidden.'}, 'open': {'type': 'bool', 'default': 'True', 'description': 'If False, the accordion will be collapsed by default.'}, 'elem_id': {'type': 'str | None', 'default': 'None', 'description': 'An optional string that is assigned as the id of this component in the DOM.'}, 'scale': {'type': 'int | None', 'default': 'None', 'description': 'The relative size of the component in its container.'}, 'width': {'type': 'int | str | None', 'default': 'None', 'description': 'The width of the component in pixels.'}, 'height': {'type': 'int | str | None', 'default': 'None', 'description': "The maximum height of the component's content area in pixels before scrolling."}, 'min_width': {'type': 'int | None', 'default': 'None', 'description': 'The minimum width of the component in pixels.'}, 'container': {'type': 'bool', 'default': 'True', 'description': 'If True, wraps the component in a container with a background.'}, 'elem_classes': {'type': 'list[str] | str | None', 'default': 'None', 'description': 'An optional list of strings that are assigned as the classes of this component in the DOM.'}}, 'postprocess': {'value': {'type': 'Any', 'description': None}}, 'preprocess': {'return': {'type': 'Any', 'description': None}, 'value': None}}, 'events': {'change': {'type': None, 'default': None, 'description': ''}, 'input': {'type': None, 'default': None, 'description': ''}, 'expand': {'type': None, 'default': None, 'description': ''}, 'collapse': {'type': None, 'default': None, 'description': ''}}}, '__meta__': {'additional_interfaces': {}, 'user_fn_refs': {'PropertySheet': []}}}
+
+abs_path = os.path.join(os.path.dirname(__file__), "css.css")
+
+with gr.Blocks(
+    css=abs_path,
+    theme=gr.themes.Default(
+        font_mono=[
+            gr.themes.GoogleFont("Inconsolata"),
+            "monospace",
+        ],
+    ),
+) as demo:
+    gr.Markdown(
+"""
 # `gradio_propertysheet`
-<img alt="Static Badge" src="https://img.shields.io/badge/version%20-%200.1.0%20-%20blue"> <a href="https://huggingface.co/spaces/gradio/gradio_propertysheet"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-blue"></a><p><span>💻 <a href='https://github.com/DEVAIEXP/gradio_component_propertysheet'>Component GitHub Code</a></span></p>
 
-The **PropertySheet** component for Gradio allows you to automatically generate a complete and interactive settings panel from a standard Python `dataclass`. It's designed to bring the power of IDE-like property editors directly into your Gradio applications.
+<div style="display: flex; gap: 7px;">
+<img alt="Static Badge" src="https://img.shields.io/badge/version%20-%200.0.1%20-%20orange">  
+</div>
 
-<img src="https://huggingface.co/datasets/DEVAIEXP/assets/resolve/main/gradio_propertysheet.png" alt="PropertySheet Demo GIF">
-
-## Key Features
-
-- **Automatic UI Generation**: Instantly converts `dataclass` fields into a structured UI.
-- **Rich Component Support**: Automatically maps Python types to UI controls:
-  - `str` -> Text Input
-  - `int`, `float` -> Number Input
-  - `bool` -> Styled Checkbox
-  - `typing.Literal` -> Dropdown
-- **Metadata-Driven Components**: Force a specific component using metadata:
-  - `metadata={"component": "slider"}`
-  - `metadata={"component": "colorpicker"}`
-- **Nested Groups**: Nested `dataclasses` are rendered as collapsible groups for organization.
-- **Conditional Visibility**: Show or hide fields based on the value of others using `interactive_if` metadata.
-- **Built-in Helpers**:
-  - **Tooltips**: Add `help` text to any property's metadata for an info icon.
-  - **Reset Button**: Each property gets a button to reset its value to default.
-- **Accordion Layout**: The entire component can act as a main collapsible accordion panel using the `open` parameter.
-- **Theme-Aware**: Designed to look and feel native in all Gradio themes.
-- **Dynamic Updates**: Supports advanced patterns where changing one field (e.g., a model selector) can dynamically update the options of another field (e.g., a sampler dropdown).
-
+Property sheet
+""", elem_classes=["md-custom"], header_links=True)
+    app.render()
+    gr.Markdown(
+"""
 ## Installation
 
 ```bash
@@ -53,7 +46,7 @@ from gradio_propertysheet import PropertySheet
 # --- Main Configuration Dataclasses for the "Render Settings" Sheet ---
 @dataclass
 class ModelSettings:
-    """Settings for loading models, VAEs, etc."""
+    \"\"\"Settings for loading models, VAEs, etc.\"\"\"
     model_type: Literal["SD 1.5", "SDXL", "Pony", "Custom"] = field(
         default="SDXL",
         metadata={"component": "dropdown", "label": "Base Model"}
@@ -69,7 +62,7 @@ class ModelSettings:
 
 @dataclass
 class SamplingSettings:
-    """Settings for the image sampling process."""
+    \"\"\"Settings for the image sampling process.\"\"\"
     sampler_name: Literal["Euler", "Euler a", "DPM++ 2M Karras", "UniPC"] = field(
         default="DPM++ 2M Karras",
         metadata={"component": "dropdown", "label": "Sampler", "help": "The algorithm for the diffusion process."}
@@ -85,7 +78,7 @@ class SamplingSettings:
 
 @dataclass
 class ImageSettings:
-    """Settings for image dimensions."""
+    \"\"\"Settings for image dimensions.\"\"\"
     width: int = field(
         default=1024,
         metadata={"component": "slider", "minimum": 512, "maximum": 2048, "step": 64, "label": "Image Width"}
@@ -97,7 +90,7 @@ class ImageSettings:
 
 @dataclass
 class PostprocessingSettings:
-    """Settings for image post-processing effects."""
+    \"\"\"Settings for image post-processing effects.\"\"\"
     restore_faces: bool = field(
         default=True,
         metadata={"label": "Restore Faces", "help": "Use a secondary model to fix distorted faces."}
@@ -113,7 +106,7 @@ class PostprocessingSettings:
 
 @dataclass
 class AdvancedSettings:
-    """Advanced and rarely changed settings."""
+    \"\"\"Advanced and rarely changed settings.\"\"\"
     clip_skip: int = field(
         default=2,
         metadata={"component": "slider", "minimum": 1, "maximum": 12, "step": 1, "label": "CLIP Skip", "help": "Skip final layers of the text encoder."}
@@ -133,7 +126,7 @@ class AdvancedSettings:
 
 @dataclass
 class ScriptSettings:
-    """Settings for automation scripts like X/Y/Z plots."""
+    \"\"\"Settings for automation scripts like X/Y/Z plots.\"\"\"
     script_name: Literal["None", "Prompt matrix", "X/Y/Z plot"] = field(
         default="None",
         metadata={"component": "dropdown", "label": "Script"}
@@ -149,7 +142,7 @@ class ScriptSettings:
 
 @dataclass
 class RenderConfig:
-    """Main configuration object for rendering, grouping all settings."""
+    \"\"\"Main configuration object for rendering, grouping all settings.\"\"\"
     seed: int = field(
         default=-1,
         metadata={"component": "number_integer", "label": "Seed (-1 for random)", "help": "The random seed for generation."}
@@ -169,14 +162,14 @@ class RenderConfig:
 
 @dataclass
 class Lighting:
-    """Lighting settings for the environment."""
+    \"\"\"Lighting settings for the environment.\"\"\"
     sun_intensity: float = field(default=1.0, metadata={"component": "slider", "minimum": 0, "maximum": 5, "step": 0.1})
     ambient_occlusion: bool = field(default=True, metadata={"label": "Ambient Occlusion"})
     color: str = field(default="#FFDDBB", metadata={"component": "colorpicker", "label": "Sun Color"})
 
 @dataclass
 class EnvironmentConfig:
-    """Main configuration for the environment."""
+    \"\"\"Main configuration for the environment.\"\"\"
     background: Literal["Sky", "Color", "Image"] = field(default="Sky", metadata={"component": "dropdown"})
     lighting: Lighting = field(default_factory=Lighting)
 
@@ -218,7 +211,7 @@ with gr.Blocks(title="PropertySheet Demo") as demo:
 
     # --- Event Handlers ---
     def handle_render_change(updated_config: RenderConfig | None):
-        """Callback to process changes from the Render Settings sheet."""
+        \"\"\"Callback to process changes from the Render Settings sheet.\"\"\"
         if updated_config is None:
             return initial_render_config, asdict(initial_render_config)
         
@@ -229,7 +222,7 @@ with gr.Blocks(title="PropertySheet Demo") as demo:
         return updated_config, asdict(updated_config)
 
     def handle_env_change(updated_config: EnvironmentConfig | None):
-        """Callback to process changes from the Environment Settings sheet."""
+        \"\"\"Callback to process changes from the Environment Settings sheet.\"\"\"
         if updated_config is None:
             return initial_env_config, asdict(initial_env_config)
         return updated_config, asdict(updated_config)
@@ -254,176 +247,25 @@ with gr.Blocks(title="PropertySheet Demo") as demo:
 if __name__ == "__main__":
     demo.launch()
 ```
+""", elem_classes=["md-custom"], header_links=True)
 
+
+    gr.Markdown("""
 ## `PropertySheet`
 
 ### Initialization
+""", elem_classes=["md-custom"], header_links=True)
 
-<table>
-<thead>
-<tr>
-<th align="left">name</th>
-<th align="left" style="width: 25%;">type</th>
-<th align="left">default</th>
-<th align="left">description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td align="left"><code>value</code></td>
-<td align="left" style="width: 25%;">
-
-```python
-typing.Optional[typing.Any][Any, None]
-```
-
-</td>
-<td align="left"><code>None</code></td>
-<td align="left">The initial dataclass instance to render.</td>
-</tr>
-
-<tr>
-<td align="left"><code>label</code></td>
-<td align="left" style="width: 25%;">
-
-```python
-str | None
-```
-
-</td>
-<td align="left"><code>None</code></td>
-<td align="left">The main label for the component, displayed in the accordion header.</td>
-</tr>
-
-<tr>
-<td align="left"><code>visible</code></td>
-<td align="left" style="width: 25%;">
-
-```python
-bool
-```
-
-</td>
-<td align="left"><code>True</code></td>
-<td align="left">If False, the component will be hidden.</td>
-</tr>
-
-<tr>
-<td align="left"><code>open</code></td>
-<td align="left" style="width: 25%;">
-
-```python
-bool
-```
-
-</td>
-<td align="left"><code>True</code></td>
-<td align="left">If False, the accordion will be collapsed by default.</td>
-</tr>
-
-<tr>
-<td align="left"><code>elem_id</code></td>
-<td align="left" style="width: 25%;">
-
-```python
-str | None
-```
-
-</td>
-<td align="left"><code>None</code></td>
-<td align="left">An optional string that is assigned as the id of this component in the DOM.</td>
-</tr>
-
-<tr>
-<td align="left"><code>scale</code></td>
-<td align="left" style="width: 25%;">
-
-```python
-int | None
-```
-
-</td>
-<td align="left"><code>None</code></td>
-<td align="left">The relative size of the component in its container.</td>
-</tr>
-
-<tr>
-<td align="left"><code>width</code></td>
-<td align="left" style="width: 25%;">
-
-```python
-int | str | None
-```
-
-</td>
-<td align="left"><code>None</code></td>
-<td align="left">The width of the component in pixels.</td>
-</tr>
-
-<tr>
-<td align="left"><code>height</code></td>
-<td align="left" style="width: 25%;">
-
-```python
-int | str | None
-```
-
-</td>
-<td align="left"><code>None</code></td>
-<td align="left">The maximum height of the component's content area in pixels before scrolling.</td>
-</tr>
-
-<tr>
-<td align="left"><code>min_width</code></td>
-<td align="left" style="width: 25%;">
-
-```python
-int | None
-```
-
-</td>
-<td align="left"><code>None</code></td>
-<td align="left">The minimum width of the component in pixels.</td>
-</tr>
-
-<tr>
-<td align="left"><code>container</code></td>
-<td align="left" style="width: 25%;">
-
-```python
-bool
-```
-
-</td>
-<td align="left"><code>True</code></td>
-<td align="left">If True, wraps the component in a container with a background.</td>
-</tr>
-
-<tr>
-<td align="left"><code>elem_classes</code></td>
-<td align="left" style="width: 25%;">
-
-```python
-list[str] | str | None
-```
-
-</td>
-<td align="left"><code>None</code></td>
-<td align="left">An optional list of strings that are assigned as the classes of this component in the DOM.</td>
-</tr>
-</tbody></table>
+    gr.ParamViewer(value=_docs["PropertySheet"]["members"]["__init__"], linkify=[])
 
 
-### Events
-
-| name | description |
-|:-----|:------------|
-| `change` | Triggered when a value is changed and committed (e.g., on slider release, or after unfocusing a textbox). |
-| `input` | Triggered on every keystroke or slider movement. |
-| `expand` | Triggered when the main accordion is opened. |
-| `collapse` | Triggered when the main accordion is closed. |
+    gr.Markdown("### Events")
+    gr.ParamViewer(value=_docs["PropertySheet"]["events"], linkify=['Event'])
 
 
+
+
+    gr.Markdown("""
 
 ### User function
 
@@ -437,9 +279,50 @@ The code snippet below is accurate in cases where the component is used as both 
 
 
  ```python
- def predict(
-     value: Any
- ) -> Any:
-     return value
- ```
+def predict(
+    value: Any
+) -> Any:
+    return value
 ```
+""", elem_classes=["md-custom", "PropertySheet-user-fn"], header_links=True)
+
+
+
+
+    demo.load(None, js=r"""function() {
+    const refs = {};
+    const user_fn_refs = {
+          PropertySheet: [], };
+    requestAnimationFrame(() => {
+
+        Object.entries(user_fn_refs).forEach(([key, refs]) => {
+            if (refs.length > 0) {
+                const el = document.querySelector(`.${key}-user-fn`);
+                if (!el) return;
+                refs.forEach(ref => {
+                    el.innerHTML = el.innerHTML.replace(
+                        new RegExp("\\b"+ref+"\\b", "g"),
+                        `<a href="#h-${ref.toLowerCase()}">${ref}</a>`
+                    );
+                })
+            }
+        })
+
+        Object.entries(refs).forEach(([key, refs]) => {
+            if (refs.length > 0) {
+                const el = document.querySelector(`.${key}`);
+                if (!el) return;
+                refs.forEach(ref => {
+                    el.innerHTML = el.innerHTML.replace(
+                        new RegExp("\\b"+ref+"\\b", "g"),
+                        `<a href="#h-${ref.toLowerCase()}">${ref}</a>`
+                    );
+                })
+            }
+        })
+    })
+}
+
+""")
+
+demo.launch()
