@@ -7,14 +7,17 @@ from gradio.components.base import Component
 def prop_meta(**kwargs) -> dataclasses.Field:
     """
     A helper function to create a dataclass field with Gradio-specific metadata.
+    
+    Returns:
+        A dataclasses.Field instance with the provided metadata.
     """
     return dataclasses.field(metadata=kwargs)
 
 class PropertySheet(Component):
     """
     A Gradio component that renders a dynamic UI from a Python dataclass instance.
+    It allows for nested settings and automatically infers input types.
     """
-    
     EVENTS = ["change", "input", "expand", "collapse"]
 
     def __init__(
@@ -52,8 +55,11 @@ class PropertySheet(Component):
         if value is not None and not dataclasses.is_dataclass(value):
             raise ValueError("Initial value must be a dataclass instance")
         
-        self._dataclass_value = copy.deepcopy(value)
-        self._initial_value = copy.deepcopy(value)
+        # Store the current dataclass instance and its type.
+        # These might be None if the component is initialized without a value.
+        self._dataclass_value = copy.deepcopy(value) if value is not None else None
+        self._dataclass_type = type(value) if dataclasses.is_dataclass(value) else None
+        
         self.width = width
         self.height = height
         self.open = open
@@ -67,6 +73,15 @@ class PropertySheet(Component):
     def _extract_prop_metadata(self, obj: Any, field: dataclasses.Field) -> Dict[str, Any]:
         """
         Inspects a dataclass field and extracts metadata for UI rendering.
+
+        This function infers the appropriate frontend component (e.g., slider, checkbox)
+        based on the field's type hint if not explicitly specified in the metadata.
+        
+        Args:
+            obj: The dataclass instance containing the field.
+            field: The dataclasses.Field object to inspect.
+        Returns:
+            A dictionary of metadata for the frontend to render a property control.
         """
         metadata = field.metadata.copy()
         metadata["name"] = field.name
@@ -94,11 +109,23 @@ class PropertySheet(Component):
     def postprocess(self, value: Any) -> List[Dict[str, Any]]:
         """
         Converts the Python dataclass instance into a JSON schema for the frontend.
-        It also synchronizes the component's internal state.
+
+        Crucially, this method also acts as a "state guardian". When Gradio calls it
+        with a valid dataclass (e.g., during a `gr.update` that makes the component visible),
+        it synchronizes the component's internal state (`_dataclass_value` and `_dataclass_type`),
+        ensuring the object is "rehydrated" and ready for `preprocess`.
+        
+        Args:
+            value: The dataclass instance to process.
+        Returns:
+            A list representing the JSON schema for the frontend UI.
         """
         if dataclasses.is_dataclass(value):
             self._dataclass_value = copy.deepcopy(value)
-
+            # Restore the dataclass type if it was lost (e.g., on re-initialization).
+            if self._dataclass_type is None:
+                self._dataclass_type = type(value)
+        
         if value is None or not dataclasses.is_dataclass(value): 
             return []
             
@@ -126,52 +153,67 @@ class PropertySheet(Component):
 
     def preprocess(self, payload: Any) -> Any:
         """
-        Processes the payload from the frontend to update the dataclass instance.
+        Processes the payload from the frontend to create an updated dataclass instance.
+
+        This method is stateless regarding the instance value. It reconstructs the object
+        from scratch using the `_dataclass_type` (which is reliably set by `postprocess`)
+        and then applies the changes from the payload.
+        
+        Args:
+            payload: The data received from the frontend, typically a list of property groups.
+        Returns:
+            A new, updated instance of the dataclass.
         """
         if payload is None:
-            return self._dataclass_value
+            return None
 
-        updated_config_obj = copy.deepcopy(self._dataclass_value)
+        if self._dataclass_type is None:
+            # This can happen if the component is used in a way that prevents postprocess
+            # from ever being called with a valid value. Returning None is a safe fallback.
+            return None
+            
+        # Create a new, default instance of the stored dataclass type.
+        reconstructed_obj = self._dataclass_type()
 
-        # This logic handles the full value object sent by the frontend on reset.
+        # Apply the values from the payload to the new instance.
         if isinstance(payload, list):
             for group in payload:
                 for prop in group.get("properties", []):
                     prop_name = prop["name"]
                     new_value = prop["value"]
-                    if hasattr(updated_config_obj, prop_name):
-                        current_value = getattr(updated_config_obj, prop_name)
-                        if current_value != new_value:
-                            setattr(updated_config_obj, prop_name, new_value)
+                    if hasattr(reconstructed_obj, prop_name):
+                        setattr(reconstructed_obj, prop_name, new_value)
                     else:
-                        for f in dataclasses.fields(updated_config_obj):
+                        # Handle nested dataclasses.
+                        for f in dataclasses.fields(reconstructed_obj):
                             if dataclasses.is_dataclass(f.type):
-                                group_obj = getattr(updated_config_obj, f.name)
+                                group_obj = getattr(reconstructed_obj, f.name)
                                 if hasattr(group_obj, prop_name):
-                                    current_value = getattr(group_obj, prop_name)
-                                    if current_value != new_value:
-                                        setattr(group_obj, prop_name, new_value)
-                                        break
-        # This logic handles single-value updates from sliders, textboxes, etc.
+                                    setattr(group_obj, prop_name, new_value)
+                                    break
         elif isinstance(payload, dict):
-             for key, new_value in payload.items():
-                if hasattr(updated_config_obj, key):
-                    setattr(updated_config_obj, key, new_value)
+            for key, new_value in payload.items():
+                if hasattr(reconstructed_obj, key):
+                    setattr(reconstructed_obj, key, new_value)
                 else:
-                    for f in dataclasses.fields(updated_config_obj):
+                    # Handle nested dataclasses for dict payloads.
+                    for f in dataclasses.fields(reconstructed_obj):
                         if dataclasses.is_dataclass(f.type):
-                            group_obj = getattr(updated_config_obj, f.name)
+                            group_obj = getattr(reconstructed_obj, f.name)
                             if hasattr(group_obj, key):
                                 setattr(group_obj, key, new_value)
                                 break
-
-        self._dataclass_value = updated_config_obj
-        return updated_config_obj
+        
+        return reconstructed_obj
     
     def api_info(self) -> Dict[str, Any]:
-        """Provides API information for the component."""
+        """
+        Provides API information for the component for use in API docs.
+        """
         return {"type": "object", "description": "A key-value dictionary of property settings."}
 
     def example_payload(self) -> Any:
-        """Returns an example payload for the component's API."""
+        """
+        Returns an example payload for the component's API.
+        """
         return {"seed": 12345}

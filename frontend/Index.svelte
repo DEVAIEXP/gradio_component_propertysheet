@@ -4,35 +4,57 @@
     import { StatusTracker } from "@gradio/statustracker";
     import type { LoadingStatus } from "@gradio/statustracker";
     import type { Gradio } from "@gradio/utils";
-    import { onMount } from "svelte";
+    import { onMount, tick } from "svelte";
 
     // --- Component Props (passed from Gradio backend) ---
+    /** The main data structure driving the UI, an array of property groups. */
     export let value: Array<{ group_name: string, properties: any[] }> = [];
+    /** The main label for the component, displayed in the top-level accordion header. */
     export let label: string | undefined = undefined;
+    /** Controls the overall visibility of the component. */
     export let visible: boolean = true;
+    /** If true, the main accordion is open by default. */
     export let open: boolean = true;
+    /** The DOM element ID. */
     export let elem_id: string = "";
+    /** Custom CSS classes for the root element. */
     export let elem_classes: string[] = [];
+    /** If true, wraps the component in a container with a background. */
     export let container: boolean = false;
+    /** The relative size of the component in its container. */
     export let scale: number | null = null;
+    /** The minimum width of the component in pixels. */
     export let min_width: number | undefined = undefined;
+    /** The fixed width of the component in pixels. */
     export let width: number | undefined = undefined;
+    /** The maximum height of the component's content area before scrolling. */
     export let height: number | undefined = undefined;
+    /** The loading status object from Gradio. */
     export let loading_status: LoadingStatus | undefined = undefined;
+    /** If false, all controls are disabled. */
     export let interactive: boolean = true;
+    /** The Gradio event dispatcher instance. */
     export let gradio: Gradio<{ change: any, reset: any, input: any, clear_status: never, expand: never, collapse: never }>;
 
     // --- Internal State ---
-    let groupVisibility: Record<string, boolean> = {}; // Tracks visibility of each property group.
-    let sliderElements: Record<string, HTMLInputElement> = {}; // References to slider input elements for direct manipulation.
+    /** Tracks the open/closed state of each individual property group. */
+    let groupVisibility: Record<string, boolean> = {};
+    /** Holds references to slider input elements for direct DOM manipulation (e.g., setting background). */
+    let sliderElements: Record<string, HTMLInputElement> = {};
+    /** Combines default and user-provided CSS classes. */
     $: final_classes = ["propertysheet-wrapper", ...elem_classes];
-    let validationState: Record<string, boolean> = {}; // Tracks validation status for each property.
-    let lastValue: string | null = null; // Stores a stringified version of `value` to detect changes.
-    let isResetting: boolean = false; // Flag to prevent event loops during property reset.
-    let initialValues: Record<string, any> = {}; // Stores the initial values of all properties for the reset functionality.
+    /** Tracks the validation status (true/false) for each property to apply error styling. */
+    let validationState: Record<string, boolean> = {};
+    /** A stringified version of the `value` prop, used to detect changes from the backend. */
+    let lastValue: string | null = null;
+    /** A flag to prevent event loops during property reset operations. */
+    let isResetting: boolean = false;
+    /** A snapshot of the initial values of all properties, used for the reset functionality. */
+    let initialValues: Record<string, any> = {};
 
     /**
-     * Validates a property's value against its minimum and maximum constraints.
+     * Validates a numeric property against its `minimum` and `maximum` constraints.
+     * Updates the `validationState` for CSS styling of invalid inputs.
      * @param {any} prop - The property object to validate.
      */
     function validate_prop(prop: any) {
@@ -53,12 +75,12 @@
         }
     }
 
-    // Controls the component height based on the accordion's open/closed state.
+    /** Controls the component's content height based on the main accordion's open/closed state. */
     let dynamic_height: number | undefined;
     $: dynamic_height = open ? height : undefined;
 
     /**
-     * Iterates through all properties and updates the background of any sliders.
+     * Iterates through all properties and updates the background visuals of any sliders.
      */
     function updateAllSliders() {
         if (!Array.isArray(value)) return;
@@ -73,15 +95,16 @@
         }
     }
 
-    // Reactive block that triggers when the `value` prop changes from the backend.
+    /**
+     * Reactive block that triggers whenever the `value` prop changes from the backend.
+     * It initializes group visibility, validates properties, and updates slider visuals.
+     */
     $: if (Array.isArray(value) && JSON.stringify(value) !== lastValue) {
         lastValue = JSON.stringify(value);
         for (const group of value) {
-            // Initialize group visibility if not already set.
             if (groupVisibility[group.group_name] === undefined) {
                 groupVisibility[group.group_name] = true;
             }
-            // Validate properties upon receiving new values.
             if (Array.isArray(group.properties)) {
                 for (const prop of group.properties) {
                     if (prop.component?.startsWith("number") || prop.component === 'slider') {
@@ -90,14 +113,14 @@
                 }
             }
         }
-        // Update slider visuals to match new values.
         updateAllSliders();
     }
     
     /**
-     * Updates a slider's track background to show progress.
+     * Updates a slider's track background to visually represent its value as a percentage.
+     * It sets the `--slider-progress` CSS custom property.
      * @param {any} prop - The slider property object.
-     * @param {HTMLInputElement} element - The slider input element.
+     * @param {HTMLInputElement} element - The slider's input element.
      */
     function updateSliderBackground(prop: any, element: HTMLInputElement) {
         if (!element) return;
@@ -109,7 +132,8 @@
     }
 
     /**
-     * Handles the main accordion toggle and dispatches events to Gradio.
+     * Handles the main accordion toggle (the component's top-level header).
+     * Dispatches 'expand' or 'collapse' events to Gradio.
      */
     function handle_toggle() {
         open = !open;
@@ -118,7 +142,7 @@
     }
 
     /**
-     * Toggles the visibility of an individual property group.
+     * Toggles the visibility of an individual property group (e.g., "Model", "Sampling").
      * @param {string} groupName - The name of the group to toggle.
      */
     function toggleGroup(groupName: string) {
@@ -126,9 +150,9 @@
     }
     
     /**
-     * Utility function to get the current value of a specific property by its name.
-     * Used for `interactive_if` logic.
-     * @param {string} prop_name - The name of the property.
+     * Utility function to find the current value of a specific property by its name.
+     * Used to implement the `interactive_if` logic.
+     * @param {string} prop_name - The name of the property to find.
      */
     function get_prop_value(prop_name: string) {
         if (!Array.isArray(value)) return undefined;
@@ -139,19 +163,20 @@
         }
         return undefined;
     }
-    
+
     /**
-     * Dispatches `change` or `input` events to the Gradio backend.
+     * Dispatches a single-property update to the Gradio backend.
+     * Used for simple inputs like textboxes, sliders, and checkboxes.
+     * Creates a small payload like `{ 'prop_name': new_value }`.
      * @param {"change" | "input"} event_name - The type of event to dispatch.
      * @param {any} changed_prop - The property object that was modified.
      */
     function dispatch_update(event_name: "change" | "input", changed_prop: any) {
         if (validationState[changed_prop.name] === false) {
-            return; // Do not dispatch if the value is invalid.
+            return;
         }
         const payload: Record<string, any> = {};
         let final_value = changed_prop.value;
-        // Ensure correct data type for dispatch.
         if (changed_prop.component?.startsWith("number") || changed_prop.component === "slider") {
             final_value = Number(changed_prop.value);
         } else if (changed_prop.component === "checkbox") {
@@ -161,13 +186,39 @@
         gradio.dispatch(event_name, payload);
     }
     
-    function handle_dropdown_change(event: Event, prop: any) {
-        prop.value = (event.target as HTMLSelectElement).value;
-        dispatch_update("change", prop);
-    }
-    
     /**
-     * Resets a single property to its initial value.
+     * Handles changes from a dropdown (`select`) element.
+     * It updates the local `value` array and then dispatches the *entire updated object*
+     * to the backend. This is a robust way to ensure state consistency.
+     * @param {Event} event - The DOM change event.
+     * @param {any} prop_to_change - The property object being modified.
+     */
+    async function handle_dropdown_change(event: Event, prop_to_change: any) {
+        const new_prop_value = (event.target as HTMLSelectElement).value;
+
+        // Recreate the entire `value` array to ensure Svelte's reactivity.
+        value = value.map(group => {
+            if (!group.properties) return group;
+            return {
+                ...group,
+                properties: group.properties.map(prop => {
+                    if (prop.name === prop_to_change.name) {
+                        return { ...prop, value: new_prop_value };
+                    }
+                    return prop;
+                })
+            };
+        });
+
+        // Wait for Svelte to process the DOM update before dispatching.
+        await tick();
+        // Dispatch the full, updated value object to the backend.
+        gradio.dispatch("change", value);
+    }
+
+    /**
+     * Resets a single property to its initial value, which was stored on mount.
+     * It dispatches the entire updated `value` object to the backend.
      * @param {string} propName - The name of the property to reset.
      */
     function handle_reset_prop(propName: string) {
@@ -177,7 +228,6 @@
             isResetting = false;
             return;
         }
-        // Create a new array to trigger Svelte's reactivity.
         let updatedValue = value.map(group => {
             if (group.properties) {
                 group.properties = group.properties.map(prop => {
@@ -194,8 +244,11 @@
         setTimeout(() => { isResetting = false; }, 100);
     }
 
-    onMount(() => {
-        // Store a snapshot of the initial value state.
+    /**
+     * Creates a snapshot of the initial values of all properties.
+     * This snapshot is used by the reset functionality.
+     */
+    function storeInitialValues() {
         lastValue = JSON.stringify(value);
         if (Array.isArray(value)) {
             value.forEach(group => {
@@ -207,12 +260,19 @@
             });
         }
         
-        // Update sliders on initial mount to ensure they reflect the correct state.
-        // A timeout ensures `bind:this` has completed.
-        setTimeout(updateAllSliders, 0);
+        // Ensure sliders are visually updated on initial load.
+        setTimeout(updateAllSliders, 50);
+    }
+
+    /**
+     * Lifecycle hook that runs when the component is first added to the DOM.
+     */
+    onMount(() => {
+        storeInitialValues();
     });
 </script>
 
+<!-- The HTML template renders the component's UI based on the `value` prop. -->
 <Block {visible} {elem_id} elem_classes={final_classes} {container} {scale} {min_width} {width}>
     {#if loading_status}
         <StatusTracker
@@ -223,7 +283,7 @@
         />
     {/if}
 
-    <!-- Main accordion header that toggles the entire component's visibility -->
+    <!-- Main accordion header that toggles the entire component's content -->
     <button class="accordion-header" on:click={handle_toggle}>
         {#if label}
             <span class="label">{label}</span>
@@ -231,7 +291,7 @@
         <span class="accordion-icon" style:transform={open ? "rotate(0)" : "rotate(-90deg)"}>▼</span>
     </button>
     
-    <!-- Content wrapper that is shown or hidden -->
+    <!-- Content wrapper that is shown or hidden based on the 'open' state -->
     <div class:closed={!open} class="content-wrapper">
         {#if open}
             <div class="container" style="--sheet-max-height: {height ? `${height}px` : 'none'}">
@@ -371,23 +431,18 @@
 </Block>
 
 <style>
-    /* --- Base Layout & Gradio Integration --- */
+    /* All styles remain the same and are included for completeness */
     :host {
-        /* Make the root component a vertical flex container. */
         display: flex;
         flex-direction: column;
         height: 100%;
     }
-
-    /* Target the wrapper div injected by Gradio. */
     :global(.propertysheet-wrapper) {
-        overflow: hidden !important; /* Force removal of external scrollbar. */
+        overflow: hidden !important;
         display: flex;
         flex-direction: column;
         flex-grow: 1;
     }
-    
-    /* --- Main Accordion --- */
     .accordion-header {
         display: flex;
         justify-content: space-between;
@@ -397,18 +452,16 @@
         padding: var(--block-title-padding);
         background: var(--block-title-background-fill);
         color: var(--block-title-text-color);
-        flex-shrink: 0; /* Prevent the header from shrinking. */
+        flex-shrink: 0;
     }
-    
     .content-wrapper {
         flex-grow: 1;
-        min-height: 0; /* Flexbox trick to allow internal scrolling. */
+        min-height: 0;
     }
-    
     .container {
         overflow-y: auto;
         height: auto; 
-        max-height: var(--sheet-max-height, 500px); /* Max height controlled by a prop, with a sensible fallback. */
+        max-height: var(--sheet-max-height, 500px);
         border-radius: 0 !important;
         border: 1px solid var(--border-color-primary);
         border-top: none;
@@ -416,12 +469,9 @@
         border-bottom-right-radius: var(--radius-lg);
         background-color: var(--background-fill-secondary);
     }
-
     .closed {
         display: none;
     }
-   
-    /* --- Property Groups and Grid --- */
     .group-header {
         display: flex;
         justify-content: space-between;
@@ -436,15 +486,12 @@
         font-weight: var(--font-weight-bold);
         border: 1px solid var(--border-color-primary);
     }
-    
-    /* Defines the two-column layout for labels and controls. */
     .properties-grid {
         display: grid;
         grid-template-columns: 1fr 2fr;
         gap: 0;
         padding: 0;
     }
-    
     .prop-label,
     .prop-control {
         padding: var(--spacing-sm) var(--spacing-md);
@@ -452,7 +499,6 @@
         align-items: center;
         border-bottom: 1px solid var(--background-fill-secondary);
     }
-    
     .prop-label {
         background-color: var(--background-fill-primary);
         color: var(--body-text-color);
@@ -463,16 +509,12 @@
         justify-content: flex-end;
         word-break: break-word;
     }
-    
     .prop-control {
         gap: var(--spacing-sm);
     }
-    
     .properties-grid > :nth-last-child(-n+2) {
         border-bottom: none;
     }
-
-    /* --- General Input Styles --- */
     .prop-control input[type="text"],
     .prop-control input[type="number"] {
         background-color: var(--input-background-fill);
@@ -487,7 +529,6 @@
         padding-left: var(--spacing-md);
         padding-right: var(--spacing-3);
     }
-    
     .prop-control input[type="text"]:focus,
     .prop-control input[type="number"]:focus {
         box-shadow: var(--input-shadow-focus);
@@ -495,13 +536,10 @@
         background-color: var(--input-background-fill-focus);
         outline: none;
     }
-
-    /* --- Dropdown Component Styles --- */
     .dropdown-wrapper {
         position: relative;
         width: 100%;
     }
-
     .dropdown-wrapper select {
         -webkit-appearance: none;
         appearance: none;
@@ -518,7 +556,6 @@
         padding-left: var(--spacing-md);
         padding-right: calc(var(--spacing-3) + 1.2em);
     }
-    
     .dropdown-arrow-icon {
         position: absolute;
         top: 50%;
@@ -532,20 +569,16 @@
         -webkit-mask-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpath d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
         mask-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpath d='M6 8l4 4 4-4'%3e%3c/svg%3e");
     }
-    
     .dropdown-wrapper select:focus {
         box-shadow: var(--input-shadow-focus);
         border-color: var(--input-border-color-focus);
         background-color: var(--input-background-fill-focus);
         outline: none;
     }
-    
     .dropdown-wrapper select option {
         background: var(--input-background-fill);
         color: var(--body-text-color);
     }
-    
-    /* --- Checkbox Component Styles --- */
     .prop-control input[type="checkbox"] {
         -webkit-appearance: none;
         appearance: none;
@@ -560,23 +593,19 @@
         margin: 0;
         transition: background-color 0.2s, border-color 0.2s;
     }
-    
     .prop-control input[type="checkbox"]:hover {
         border-color: var(--checkbox-border-color-hover);
         background-color: var(--checkbox-background-color-hover);
     }
-    
     .prop-control input[type="checkbox"]:focus {
         border-color: var(--checkbox-border-color-focus);
         background-color: var(--checkbox-background-color-focus);
         outline: none;
     }
-    
     .prop-control input[type="checkbox"]:checked {
         background-color: var(--checkbox-background-color-selected);
         border-color: var(--checkbox-border-color-focus);
     }
-    
     .prop-control input[type="checkbox"]:checked::after {
         content: "";
         position: absolute;
@@ -589,31 +618,25 @@
         border-width: 0 2px 2px 0;
         transform: translate(-50%, -60%) rotate(45deg);
     }
-    
-    /* --- Slider Component Styles --- */
     .slider-container {
         display: flex;
         align-items: center;
         gap: var(--spacing-md);
         width: 100%;
     }
-    
     .slider-container input[type="range"] {
-        --slider-progress: 0%; /* CSS variable to control the track fill percentage. */
+        --slider-progress: 0%;
         -webkit-appearance: none;
         appearance: none;
         background: transparent;
         cursor: pointer;
         width: 100%;
     }
-    
-    /* The track of the slider, filled with a gradient based on --slider-progress. */
     .slider-container input[type="range"]::-webkit-slider-runnable-track {
         height: 8px;
         border-radius: var(--radius-lg);
         background: linear-gradient( to right, var(--slider-color) var(--slider-progress), var(--input-background-fill) var(--slider-progress) );
     }
-    
     .slider-container input[type="range"]::-webkit-slider-thumb {
         -webkit-appearance: none;
         appearance: none;
@@ -625,13 +648,11 @@
         border: 1px solid var(--border-color-primary);
         box-shadow: var(--shadow-drop);
     }
-    
     .slider-container input[type="range"]::-moz-range-track {
         height: 8px;
         border-radius: var(--radius-lg);
         background: linear-gradient( to right, var(--slider-color) var(--slider-progress), var(--input-background-fill) var(--slider-progress) );
     }
-    
     .slider-container input[type="range"]::-moz-range-thumb {
         background-color: white;
         border-radius: 50%;
@@ -640,15 +661,12 @@
         border: 1px solid var(--border-color-primary);
         box-shadow: var(--shadow-drop);
     }
-    
     .slider-value {
         min-width: 40px;
         text-align: right;
         font-family: var(--font-mono);
         font-size: var(--text-xs);
     }
-
-    /* --- Tooltip Styles --- */
     .prop-label-wrapper {
         display: flex;
         justify-content: flex-end;
@@ -656,14 +674,12 @@
         gap: var(--spacing-sm);
         width: 100%;
     }
-
     .tooltip-container {
         position: relative;
         display: inline-flex;
         align-items: center;
         justify-content: center;
     }
-
     .tooltip-icon {
         display: flex;
         align-items: center;
@@ -678,7 +694,6 @@
         cursor: help;
         user-select: none;
     }
-
     .tooltip-text {
         visibility: hidden;
         width: 200px;
@@ -695,20 +710,16 @@
         opacity: 0;
         transition: opacity 0.3s;
     }
-
     .tooltip-container:hover .tooltip-text {
         visibility: visible;
         opacity: 1;
     }
-
-   /* --- Color Picker Styles --- */
 	.color-picker-container {
 		display: flex;
 		align-items: center;
 		gap: var(--spacing-md);
 		width: 100%;
 	}
-
 	.color-picker-input {
 		width: 50px;
 		height: 28px;
@@ -718,15 +729,12 @@
 		cursor: pointer;
 		padding: 0;
 	}
-
-	/* Style the inner color swatch for a clean look. */
 	.color-picker-input::-webkit-color-swatch-wrapper {
 		padding: 2px;
 	}
 	.color-picker-input::-moz-padding {
 	    padding: 2px;
 	}
-
 	.color-picker-input::-webkit-color-swatch {
 		border: none;
 		border-radius: var(--radius-sm);
@@ -735,20 +743,15 @@
 		border: none;
 		border-radius: var(--radius-sm);
 	}
-
 	.color-picker-value {
 		font-family: var(--font-mono);
 		font-size: var(--text-sm);
 		color: var(--body-text-color-subdued);
 	}
-
-    /* --- Validation and State Styles --- */
     .prop-control input.invalid {
         border-color: var(--error-border-color, red) !important;
         box-shadow: 0 0 0 1px var(--error-border-color, red) !important;
     }
-    
-    /* --- Property Reset Button --- */
     .reset-button-prop {
         display: flex;
         align-items: center;
@@ -760,44 +763,35 @@
         color: var(--body-text-color-subdued);
         font-size: var(--text-lg);
         padding: 0 var(--spacing-2);
-        /* Hidden by default, but occupies space to prevent layout shifts. */
         visibility: hidden;
         opacity: 0;
         transition: opacity 150ms ease-in-out, color 150ms ease-in-out;
     }
-
-    /* When the .visible class is added via Svelte, the button appears. */
     .reset-button-prop.visible {
         visibility: visible;
         opacity: 1;
     }
-
     .reset-button-prop:hover {
         color: var(--body-text-color);
         background-color: var(--background-fill-secondary-hover);
     }
-    
     .reset-button-prop:disabled {
 	    color: var(--body-text-color-subdued) !important;
 	    opacity: 0.5;
 	    cursor: not-allowed;
 	    background-color: transparent !important;
 	}
-    
-    /* --- Disabled State --- */
     .prop-control .disabled {
 		opacity: 0.5;
 		pointer-events: none;
 		cursor: not-allowed;
 	}
-
 	.prop-control .disabled input {
 		cursor: not-allowed;
 	}
-	
 	.reset-button-prop:disabled {
 	    opacity: 0.3;
 	    cursor: not-allowed;
-	    background-color: transparent !important; /* Prevents hover effect. */
+	    background-color: transparent !important;
 	}
 </style>
