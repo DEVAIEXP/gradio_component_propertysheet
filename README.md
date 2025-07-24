@@ -14,8 +14,6 @@ app_file: space.py
 
 The **PropertySheet** component for Gradio allows you to automatically generate a complete and interactive settings panel from a standard Python `dataclass`. It's designed to bring the power of IDE-like property editors directly into your Gradio applications.
 
-<img src="https://huggingface.co/datasets/DEVAIEXP/assets/resolve/main/gradio_propertysheet.png" alt="PropertySheet Demo">" alt="PropertySheet Demo GIF">
-
 ## Key Features
 
 - **Automatic UI Generation**: Instantly converts `dataclass` fields into a structured UI.
