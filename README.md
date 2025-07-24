@@ -12,6 +12,8 @@ app_file: space.py
 # `gradio_propertysheet`
 <img alt="Static Badge" src="https://img.shields.io/badge/version%20-%200.0.3%20-%20blue"> <a href="https://huggingface.co/spaces/elismasilva/gradio_propertysheet"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-blue"></a><p><span>💻 <a href='https://github.com/DEVAIEXP/gradio_component_propertysheet'>Component GitHub Code</a></span></p>
 
+<img src="https://huggingface.co/datasets/DEVAIEXP/assets/resolve/main/gradio_propertysheet.png" alt="PropertySheet Demo"> 
+
 The **PropertySheet** component for Gradio allows you to automatically generate a complete and interactive settings panel from a standard Python `dataclass`. It's designed to bring the power of IDE-like property editors directly into your Gradio applications.
 
 ## Key Features
