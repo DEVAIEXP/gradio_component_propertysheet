@@ -101,14 +101,16 @@ with gr.Blocks(title="PropertySheet Demo") as demo:
                 label="Render Settings",
                 width=400,
                 height=550,
-                visible=False           
+                visible=False,
+                root_label="Generator"       
             )
             environment_sheet = PropertySheet(
                 value=initial_env_config,
                 label="Environment Settings",
                 width=400,
                 open=False,
-                visible=False                
+                visible=False,
+                root_label="General"              
             )
 
     # --- Event Handlers ---

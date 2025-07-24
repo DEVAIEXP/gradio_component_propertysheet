@@ -3,7 +3,7 @@ import gradio as gr
 from app import demo as app
 import os
 
-_docs = {'PropertySheet': {'description': 'A Gradio component that renders a dynamic UI from a Python dataclass instance.\nIt allows for nested settings and automatically infers input types.', 'members': {'__init__': {'value': {'type': 'typing.Optional[typing.Any][Any, None]', 'default': 'None', 'description': 'The initial dataclass instance to render.'}, 'label': {'type': 'str | None', 'default': 'None', 'description': 'The main label for the component, displayed in the accordion header.'}, 'visible': {'type': 'bool', 'default': 'True', 'description': 'If False, the component will be hidden.'}, 'open': {'type': 'bool', 'default': 'True', 'description': 'If False, the accordion will be collapsed by default.'}, 'elem_id': {'type': 'str | None', 'default': 'None', 'description': 'An optional string that is assigned as the id of this component in the DOM.'}, 'scale': {'type': 'int | None', 'default': 'None', 'description': 'The relative size of the component in its container.'}, 'width': {'type': 'int | str | None', 'default': 'None', 'description': 'The width of the component in pixels.'}, 'height': {'type': 'int | str | None', 'default': 'None', 'description': "The maximum height of the component's content area in pixels before scrolling."}, 'min_width': {'type': 'int | None', 'default': 'None', 'description': 'The minimum width of the component in pixels.'}, 'container': {'type': 'bool', 'default': 'True', 'description': 'If True, wraps the component in a container with a background.'}, 'elem_classes': {'type': 'list[str] | str | None', 'default': 'None', 'description': 'An optional list of strings that are assigned as the classes of this component in the DOM.'}}, 'postprocess': {'value': {'type': 'Any', 'description': 'The dataclass instance to process.'}}, 'preprocess': {'return': {'type': 'Any', 'description': 'A new, updated instance of the dataclass.'}, 'value': None}}, 'events': {'change': {'type': None, 'default': None, 'description': ''}, 'input': {'type': None, 'default': None, 'description': ''}, 'expand': {'type': None, 'default': None, 'description': ''}, 'collapse': {'type': None, 'default': None, 'description': ''}}}, '__meta__': {'additional_interfaces': {}, 'user_fn_refs': {'PropertySheet': []}}}
+_docs = {'PropertySheet': {'description': 'A Gradio component that renders a dynamic UI from a Python dataclass instance.\nIt allows for nested settings and automatically infers input types.', 'members': {'__init__': {'value': {'type': 'typing.Optional[typing.Any][Any, None]', 'default': 'None', 'description': 'The initial dataclass instance to render.'}, 'label': {'type': 'str | None', 'default': 'None', 'description': 'The main label for the component, displayed in the accordion header.'}, 'root_label': {'type': 'str', 'default': '"General"', 'description': 'The label for the root group of properties.'}, 'visible': {'type': 'bool', 'default': 'True', 'description': 'If False, the component will be hidden.'}, 'open': {'type': 'bool', 'default': 'True', 'description': 'If False, the accordion will be collapsed by default.'}, 'elem_id': {'type': 'str | None', 'default': 'None', 'description': 'An optional string that is assigned as the id of this component in the DOM.'}, 'scale': {'type': 'int | None', 'default': 'None', 'description': 'The relative size of the component in its container.'}, 'width': {'type': 'int | str | None', 'default': 'None', 'description': 'The width of the component in pixels.'}, 'height': {'type': 'int | str | None', 'default': 'None', 'description': "The maximum height of the component's content area in pixels before scrolling."}, 'min_width': {'type': 'int | None', 'default': 'None', 'description': 'The minimum width of the component in pixels.'}, 'container': {'type': 'bool', 'default': 'True', 'description': 'If True, wraps the component in a container with a background.'}, 'elem_classes': {'type': 'list[str] | str | None', 'default': 'None', 'description': 'An optional list of strings that are assigned as the classes of this component in the DOM.'}}, 'postprocess': {'value': {'type': 'Any', 'description': 'The dataclass instance to process.'}}, 'preprocess': {'return': {'type': 'Any', 'description': 'A new, updated instance of the dataclass.'}, 'value': None}}, 'events': {'change': {'type': None, 'default': None, 'description': ''}, 'input': {'type': None, 'default': None, 'description': ''}, 'expand': {'type': None, 'default': None, 'description': ''}, 'collapse': {'type': None, 'default': None, 'description': ''}}}, '__meta__': {'additional_interfaces': {}, 'user_fn_refs': {'PropertySheet': []}}}
 
 abs_path = os.path.join(os.path.dirname(__file__), "css.css")
 
@@ -141,14 +141,16 @@ with gr.Blocks(title="PropertySheet Demo") as demo:
                 label="Render Settings",
                 width=400,
                 height=550,
-                visible=False           
+                visible=False,
+                root_label="Generator"       
             )
             environment_sheet = PropertySheet(
                 value=initial_env_config,
                 label="Environment Settings",
                 width=400,
                 open=False,
-                visible=False                
+                visible=False,
+                root_label="General"              
             )
 
     # --- Event Handlers ---

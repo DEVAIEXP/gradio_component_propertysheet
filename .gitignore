@@ -1,5 +1,6 @@
 .eggs/
 dist/
+.vscode/
 *.pyc
 __pycache__/
 *.py[cod]

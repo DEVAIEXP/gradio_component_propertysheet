@@ -25,6 +25,7 @@ class PropertySheet(Component):
         value: Any | None = None, 
         *,  
         label: str | None = None,
+        root_label: str = "General",
         visible: bool = True,
         open: bool = True,
         elem_id: str | None = None,
@@ -42,6 +43,7 @@ class PropertySheet(Component):
         Args:
             value: The initial dataclass instance to render.
             label: The main label for the component, displayed in the accordion header.
+            root_label: The label for the root group of properties.
             visible: If False, the component will be hidden.
             open: If False, the accordion will be collapsed by default.
             elem_id: An optional string that is assigned as the id of this component in the DOM.
@@ -63,6 +65,7 @@ class PropertySheet(Component):
         self.width = width
         self.height = height
         self.open = open
+        self.root_label = root_label
         
         super().__init__(
             label=label, visible=visible, elem_id=elem_id, scale=scale,
@@ -126,28 +129,54 @@ class PropertySheet(Component):
             if self._dataclass_type is None:
                 self._dataclass_type = type(value)
         
-        if value is None or not dataclasses.is_dataclass(value): 
+        current_value = self._dataclass_value
+
+        if current_value is None or not dataclasses.is_dataclass(current_value): 
             return []
             
         json_schema, root_properties = [], []
-        for field in dataclasses.fields(value):
-            field_type = get_type_hints(type(value)).get(field.name)
-            field_is_dataclass = False
-            try:
-                if dataclasses.is_dataclass(field_type): field_is_dataclass = True
-            except TypeError:
-                field_is_dataclass = False
+      
+        used_group_names = set()
 
-            if field_is_dataclass:
-                group_obj, group_props = getattr(value, field.name), []
+        # Process nested dataclasses first
+        for field in dataclasses.fields(current_value):      
+            field_type = get_type_hints(type(current_value)).get(field.name)
+            is_nested_dataclass = dataclasses.is_dataclass(field_type) if isinstance(field_type, type) else False
+
+            if is_nested_dataclass:
+                group_obj = getattr(current_value, field.name)
+                group_props = []
                 for group_field in dataclasses.fields(group_obj):
-                    group_props.append(self._extract_prop_metadata(group_obj, group_field))
-                json_schema.append({"group_name": field.name.capitalize(), "properties": group_props})
+                    metadata = self._extract_prop_metadata(group_obj, group_field)
+                    metadata["name"] = f"{field.name}.{group_field.name}"
+                    group_props.append(metadata)
+                                
+                base_group_name = field.name.replace("_", " ").title()
+                unique_group_name = base_group_name
+                counter = 2
+                # If the name is already used, append a counter until it's unique
+                while unique_group_name in used_group_names:
+                    unique_group_name = f"{base_group_name} ({counter})"
+                    counter += 1
+                
+                used_group_names.add(unique_group_name) # Add the final unique name to the set
+                json_schema.append({"group_name": unique_group_name, "properties": group_props})
             else:
-                root_properties.append(self._extract_prop_metadata(value, field))
+                # Collect root properties to be processed later
+                root_properties.append(self._extract_prop_metadata(current_value, field))
         
-        if root_properties:
-            json_schema.insert(0, {"group_name": "General", "properties": root_properties})
+        # Process root properties, if any exist
+        if root_properties:           
+            base_root_label = self.root_label
+            unique_root_label = base_root_label
+            counter = 2
+            # Apply the same logic to the root label
+            while unique_root_label in used_group_names:
+                unique_root_label = f"{base_root_label} ({counter})"
+                counter += 1
+            
+            # No need to add to used_group_names as it's the last one
+            json_schema.insert(0, {"group_name": unique_root_label, "properties": root_properties})
 
         return json_schema
 
@@ -163,47 +192,55 @@ class PropertySheet(Component):
             payload: The data received from the frontend, typically a list of property groups.
         Returns:
             A new, updated instance of the dataclass.
-        """
-        if payload is None:
+        """        
+        if self._dataclass_type is None or payload is None:
             return None
 
-        if self._dataclass_type is None:
-            # This can happen if the component is used in a way that prevents postprocess
-            # from ever being called with a valid value. Returning None is a safe fallback.
-            return None
-            
-        # Create a new, default instance of the stored dataclass type.
         reconstructed_obj = self._dataclass_type()
+        value_map = {}
 
-        # Apply the values from the payload to the new instance.
         if isinstance(payload, list):
             for group in payload:
-                for prop in group.get("properties", []):
-                    prop_name = prop["name"]
-                    new_value = prop["value"]
-                    if hasattr(reconstructed_obj, prop_name):
-                        setattr(reconstructed_obj, prop_name, new_value)
-                    else:
-                        # Handle nested dataclasses.
-                        for f in dataclasses.fields(reconstructed_obj):
-                            if dataclasses.is_dataclass(f.type):
-                                group_obj = getattr(reconstructed_obj, f.name)
-                                if hasattr(group_obj, prop_name):
-                                    setattr(group_obj, prop_name, new_value)
-                                    break
-        elif isinstance(payload, dict):
-            for key, new_value in payload.items():
-                if hasattr(reconstructed_obj, key):
-                    setattr(reconstructed_obj, key, new_value)
+                # We need to handle the potentially renamed root group
+                group_name_key = None
+                # Find the corresponding field name in the dataclass for this group
+                # This logic is a bit complex, it matches "General (Root)" back to the correct field
+                potential_root_name = group["group_name"].replace(" (Root)", "")
+                if potential_root_name == self.root_label:
+                    # This is the root group, properties are at the top level
+                    group_name_key = None
                 else:
-                    # Handle nested dataclasses for dict payloads.
                     for f in dataclasses.fields(reconstructed_obj):
-                        if dataclasses.is_dataclass(f.type):
-                            group_obj = getattr(reconstructed_obj, f.name)
-                            if hasattr(group_obj, key):
-                                setattr(group_obj, key, new_value)
-                                break
+                        if f.name.replace("_", " ").title() == group["group_name"]:
+                            group_name_key = f.name
+                            break
+
+                for prop in group.get("properties", []):
+                    # Reconstruct the full key path
+                    full_key = prop["name"]
+                    if '.' not in full_key and group_name_key is not None:
+                        # This case is less likely with our current postprocess, but is a safeguard
+                        full_key = f"{group_name_key}.{prop['name']}"
+                    
+                    value_map[full_key] = prop["value"]
         
+        elif isinstance(payload, dict):
+            value_map = payload
+
+        # Populate the fresh object using the flattened value_map
+        for field in dataclasses.fields(reconstructed_obj):
+            if dataclasses.is_dataclass(field.type):
+                group_obj = getattr(reconstructed_obj, field.name)
+                for group_field in dataclasses.fields(group_obj):
+                    nested_key = f"{field.name}.{group_field.name}"
+                    if nested_key in value_map:
+                        setattr(group_obj, group_field.name, value_map[nested_key])
+            else:
+                root_key = field.name
+                if root_key in value_map:
+                    setattr(reconstructed_obj, root_key, value_map[root_key])
+
+        self._dataclass_value = reconstructed_obj
         return reconstructed_obj
     
     def api_info(self) -> Dict[str, Any]:
