@@ -11,6 +11,10 @@
     export let value: Array<{ group_name: string, properties: any[] }> = [];
     /** The main label for the component, displayed in the top-level accordion header. */
     export let label: string | undefined = undefined;
+    /** The label for the root group of properties, displayed when there is only one group. */
+    export let show_group_name_only_one: boolean = true;
+    /** If true, disables the accordion functionality, showing all properties without grouping. */
+    export let disable_accordion: boolean = false;
     /** Controls the overall visibility of the component. */
     export let visible: boolean = true;
     /** If true, the main accordion is open by default. */
@@ -135,7 +139,7 @@
      * Handles the main accordion toggle (the component's top-level header).
      * Dispatches 'expand' or 'collapse' events to Gradio.
      */
-    function handle_toggle() {
+    function handle_toggle() {        
         open = !open;
         if (open) gradio.dispatch("expand");
         else gradio.dispatch("collapse");
@@ -267,7 +271,7 @@
     /**
      * Lifecycle hook that runs when the component is first added to the DOM.
      */
-    onMount(() => {
+    onMount(() => {       
         storeInitialValues();
     });
 </script>
@@ -284,25 +288,28 @@
     {/if}
 
     <!-- Main accordion header that toggles the entire component's content -->
-    <button class="accordion-header" on:click={handle_toggle}>
+    <button class="accordion-header" on:click={handle_toggle} disabled={disable_accordion}>
         {#if label}
             <span class="label">{label}</span>
         {/if}
-        <span class="accordion-icon" style:transform={open ? "rotate(0)" : "rotate(-90deg)"}>▼</span>
+        {#if !disable_accordion}
+            <span class="accordion-icon" style:transform={open ? "rotate(0)" : "rotate(-90deg)"}>▼</span>
+        {/if}        
     </button>
     
     <!-- Content wrapper that is shown or hidden based on the 'open' state -->
     <div class:closed={!open} class="content-wrapper">
         {#if open}
-            <div class="container" style="--sheet-max-height: {height ? `${height}px` : 'none'}">
+            <div class="container" style="--show-group-name: {value.length > 1 || (show_group_name_only_one && value.length === 1) ? 'none' : '1px solid var(--border-color-primary)'}; --sheet-max-height: {height ? `${height}px` : 'none'}">
                 {#if Array.isArray(value)}
                     <!-- Loop through each property group -->
                     {#each value as group (group.group_name)}
-                        <button class="group-header" on:click={() => toggleGroup(group.group_name)}>
-                            <span class="group-title">{group.group_name}</span>
-                            <span class="group-toggle-icon">{groupVisibility[group.group_name] ? '−' : '+'}</span>
-                        </button>
-
+                        {#if value.length > 1 || (show_group_name_only_one && value.length === 1)}
+                            <button class="group-header" on:click={() => toggleGroup(group.group_name)}>
+                                <span class="group-title">{group.group_name}</span>
+                                <span class="group-toggle-icon">{groupVisibility[group.group_name] ? '−' : '+'}</span>
+                            </button>
+                        {/if}    
                         {#if groupVisibility[group.group_name]}
                             <div class="properties-grid">
                                 <!-- Loop through each property within a group -->
@@ -443,7 +450,7 @@
         flex-direction: column;
         flex-grow: 1;
     }
-    .accordion-header {
+    .accordion-header {    
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -453,6 +460,9 @@
         background: var(--block-title-background-fill);
         color: var(--block-title-text-color);
         flex-shrink: 0;
+    }
+    .accordion-icon{
+        margin-left: auto;
     }
     .content-wrapper {
         flex-grow: 1;
@@ -464,7 +474,7 @@
         max-height: var(--sheet-max-height, 500px);
         border-radius: 0 !important;
         border: 1px solid var(--border-color-primary);
-        border-top: none;
+        border-top: var(--show-group-name);
         border-bottom-left-radius: var(--radius-lg);
         border-bottom-right-radius: var(--radius-lg);
         background-color: var(--background-fill-secondary);

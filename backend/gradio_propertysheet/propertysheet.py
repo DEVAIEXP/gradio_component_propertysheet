@@ -26,6 +26,8 @@ class PropertySheet(Component):
         *,  
         label: str | None = None,
         root_label: str = "General",
+        show_group_name_only_one: bool = True,
+        disable_accordion: bool = False,
         visible: bool = True,
         open: bool = True,
         elem_id: str | None = None,
@@ -44,6 +46,8 @@ class PropertySheet(Component):
             value: The initial dataclass instance to render.
             label: The main label for the component, displayed in the accordion header.
             root_label: The label for the root group of properties.
+            show_group_name_only_one: If True, only the group name is shown when there is a single group.
+            disable_accordion: If True, disables the accordion functionality.
             visible: If False, the component will be hidden.
             open: If False, the accordion will be collapsed by default.
             elem_id: An optional string that is assigned as the id of this component in the DOM.
@@ -66,6 +70,8 @@ class PropertySheet(Component):
         self.height = height
         self.open = open
         self.root_label = root_label
+        self.show_group_name_only_one = show_group_name_only_one
+        self.disable_accordion = disable_accordion
         
         super().__init__(
             label=label, visible=visible, elem_id=elem_id, scale=scale,
