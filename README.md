@@ -10,9 +10,31 @@ app_file: space.py
 ---
 
 # `gradio_propertysheet`
-<a href="https://pypi.org/project/gradio_propertysheet/" target="_blank"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/gradio_propertysheet"></a>  
+<img alt="Static Badge" src="https://img.shields.io/badge/version%20-%200.0.5%20-%20blue"> <a href="https://huggingface.co/spaces/elismasilva/gradio_propertysheet"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-blue"></a><p><span>💻 <a href='https://github.com/DEVAIEXP/gradio_component_propertysheet'>Component GitHub Code</a></span></p>
 
-Property sheet
+The **PropertySheet** component for Gradio allows you to automatically generate a complete and interactive settings panel from a standard Python `dataclass`. It's designed to bring the power of IDE-like property editors directly into your Gradio applications.
+
+<img src="https://huggingface.co/datasets/DEVAIEXP/assets/resolve/main/gradio_propertysheet_demo.png" alt="PropertySheet Demo"> 
+
+## Key Features
+
+- **Automatic UI Generation**: Instantly converts `dataclass` fields into a structured UI.
+- **Rich Component Support**: Automatically maps Python types to UI controls:
+  - `str` -> Text Input
+  - `int`, `float` -> Number Input
+  - `bool` -> Styled Checkbox
+  - `typing.Literal` -> Dropdown
+- **Metadata-Driven Components**: Force a specific component using metadata:
+  - `metadata={"component": "slider"}`
+  - `metadata={"component": "colorpicker"}`
+- **Nested Groups**: Nested `dataclasses` are rendered as collapsible groups for organization.
+- **Conditional Visibility**: Show or hide fields based on the value of others using `interactive_if` metadata.
+- **Built-in Helpers**:
+  - **Tooltips**: Add `help` text to any property's metadata for an info icon.
+  - **Reset Button**: Each property gets a button to reset its value to default.
+- **Accordion Layout**: The entire component can act as a main collapsible accordion panel using the `open` parameter.
+- **Theme-Aware**: Designed to look and feel native in all Gradio themes.
+- **Dynamic Updates**: Supports advanced patterns where changing one field (e.g., a model selector) can dynamically update the options of another field (e.g., a sampler dropdown).
 
 ## Installation
 

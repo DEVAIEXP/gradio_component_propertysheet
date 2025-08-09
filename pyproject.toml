@@ -8,7 +8,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "gradio_propertysheet"
-version = "0.0.4"
+version = "0.0.5"
 description = "Property sheet"
 readme = "README.md"
 license = "apache-2.0"
@@ -38,8 +38,8 @@ classifiers = [
 # encounter your project in the wild.
 
 # [project.urls]
-# repository = "your github repository"
-# space = "your space url"
+# repository = "https://github.com/DEVAIEXP/gradio_component_propertysheet"
+# space = "https://huggingface.co/spaces/elismasilva/gradio_propertysheet"
 
 [project.optional-dependencies]
 dev = ["build", "twine"]

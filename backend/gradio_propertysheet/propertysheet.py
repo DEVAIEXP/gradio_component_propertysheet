@@ -1,8 +1,10 @@
 from __future__ import annotations
 import copy
-from typing import Any, Dict, List, get_type_hints, get_origin, get_args, Literal
+from typing import Any, Dict, List, get_type_hints
 import dataclasses
 from gradio.components.base import Component
+from gradio_propertysheet.helpers import extract_prop_metadata
+from gradio_client.documentation import document
 
 def prop_meta(**kwargs) -> dataclasses.Field:
     """
@@ -12,7 +14,7 @@ def prop_meta(**kwargs) -> dataclasses.Field:
         A dataclasses.Field instance with the provided metadata.
     """
     return dataclasses.field(metadata=kwargs)
-
+@document()
 class PropertySheet(Component):
     """
     A Gradio component that renders a dynamic UI from a Python dataclass instance.
@@ -79,42 +81,8 @@ class PropertySheet(Component):
             value=self._dataclass_value, **kwargs
         )
 
-    def _extract_prop_metadata(self, obj: Any, field: dataclasses.Field) -> Dict[str, Any]:
-        """
-        Inspects a dataclass field and extracts metadata for UI rendering.
-
-        This function infers the appropriate frontend component (e.g., slider, checkbox)
-        based on the field's type hint if not explicitly specified in the metadata.
-        
-        Args:
-            obj: The dataclass instance containing the field.
-            field: The dataclasses.Field object to inspect.
-        Returns:
-            A dictionary of metadata for the frontend to render a property control.
-        """
-        metadata = field.metadata.copy()
-        metadata["name"] = field.name
-        current_value = getattr(obj, field.name)
-        metadata["value"] = current_value if current_value is not None else (field.default if field.default is not dataclasses.MISSING else None)
-        metadata["label"] = metadata.get("label", field.name.replace("_", " ").capitalize())
-        
-        prop_type = get_type_hints(type(obj)).get(field.name)
-        if "component" not in metadata:
-            if metadata.get("component") == "colorpicker": pass
-            elif get_origin(prop_type) is Literal: metadata["component"] = "dropdown"
-            elif prop_type is bool: metadata["component"] = "checkbox"
-            elif prop_type is int: metadata["component"] = "number_integer"
-            elif prop_type is float: metadata["component"] = "number_float"
-            else: metadata["component"] = "string"
-        
-        if metadata.get("component") == "dropdown":
-            if get_origin(prop_type) is Literal:
-                choices = list(get_args(prop_type))
-                metadata["choices"] = choices
-                if metadata["value"] not in choices:
-                    metadata["value"] = choices[0] if choices else None
-        return metadata
-
+    
+    @document()
     def postprocess(self, value: Any) -> List[Dict[str, Any]]:
         """
         Converts the Python dataclass instance into a JSON schema for the frontend.
@@ -153,7 +121,7 @@ class PropertySheet(Component):
                 group_obj = getattr(current_value, field.name)
                 group_props = []
                 for group_field in dataclasses.fields(group_obj):
-                    metadata = self._extract_prop_metadata(group_obj, group_field)
+                    metadata = extract_prop_metadata(group_obj, group_field)
                     metadata["name"] = f"{field.name}.{group_field.name}"
                     group_props.append(metadata)
                                 
@@ -169,7 +137,7 @@ class PropertySheet(Component):
                 json_schema.append({"group_name": unique_group_name, "properties": group_props})
             else:
                 # Collect root properties to be processed later
-                root_properties.append(self._extract_prop_metadata(current_value, field))
+                root_properties.append(extract_prop_metadata(current_value, field))
         
         # Process root properties, if any exist
         if root_properties:           
@@ -185,7 +153,8 @@ class PropertySheet(Component):
             json_schema.insert(0, {"group_name": unique_root_label, "properties": root_properties})
 
         return json_schema
-
+    
+    @document()
     def preprocess(self, payload: Any) -> Any:
         """
         Processes the payload from the frontend to create an updated dataclass instance.
