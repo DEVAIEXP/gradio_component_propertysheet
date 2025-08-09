@@ -274,6 +274,9 @@
     onMount(() => {       
         storeInitialValues();
     });
+    $: if (open && groupVisibility) {     
+        tick().then(updateAllSliders);
+    }
 </script>
 
 <!-- The HTML template renders the component's UI based on the `value` prop. -->
