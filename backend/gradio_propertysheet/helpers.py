@@ -20,25 +20,35 @@ def extract_prop_metadata(cls: Type, field: dataclasses.Field) -> Dict[str, Any]
     metadata = field.metadata.copy()
     metadata["name"] = field.name
     current_value = getattr(cls, field.name)
-    metadata["value"] = current_value if current_value is not None else (field.default if field.default is not dataclasses.MISSING else None)
+    metadata["value"] = current_value if current_value is not None else (
+        field.default if field.default is not dataclasses.MISSING else None
+    )
     metadata["label"] = metadata.get("label", field.name.replace("_", " ").capitalize())
     
     prop_type = get_type_hints(type(cls)).get(field.name)
-    if "component" not in metadata:
-        if metadata.get("component") == "colorpicker": pass
-        elif get_origin(prop_type) is Literal: metadata["component"] = "dropdown"
-        elif prop_type is bool: metadata["component"] = "checkbox"
-        elif prop_type is int: metadata["component"] = "number_integer"
-        elif prop_type is float: metadata["component"] = "number_float"
-        else: metadata["component"] = "string"
     
-    if metadata.get("component") == "dropdown":
-        if get_origin(prop_type) is Literal:
-            choices = list(get_args(prop_type))
-            metadata["choices"] = choices
-            if metadata["value"] not in choices:
-                metadata["value"] = choices[0] if choices else None
+    # Set default component based on type if not specified
+    if "component" not in metadata:
+        if prop_type is bool:
+            metadata["component"] = "checkbox"
+        elif prop_type is int:
+            metadata["component"] = "number_integer"
+        elif prop_type is float:
+            metadata["component"] = "number_float"
+        elif get_origin(prop_type) is Literal:
+            metadata["component"] = "dropdown"
+        else:
+            metadata["component"] = "string"
+    
+    # Handle choices for dropdown and radio components with Literal types
+    if metadata.get("component") in ["dropdown", "radio"] and get_origin(prop_type) is Literal:
+        choices = list(get_args(prop_type))
+        metadata["choices"] = choices
+        if metadata["value"] not in choices:
+            metadata["value"] = choices[0] if choices else None
+    
     return metadata
+
 
 @document()
 def build_dataclass_fields(cls: Type, prefix: str = "") -> Dict[str, str]:

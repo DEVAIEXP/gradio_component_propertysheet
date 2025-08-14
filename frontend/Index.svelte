@@ -346,13 +346,13 @@
                                                     on:change={() => dispatch_update("change", prop)} 
                                                     on:input={() => dispatch_update("input", prop)} 
                                                 />
-                                            {:else if prop.component === 'checkbox'}
-                                                <input 
+                                            {:else if prop.component === 'checkbox'}                                                
+                                                <input                                                         
                                                     type="checkbox" 
                                                     bind:checked={prop.value} 
                                                     disabled={!is_interactive} 
                                                     on:change={() => dispatch_update("change", prop)} 
-                                                />
+                                                />                                            
                                             {:else if prop.component === 'number_integer' || prop.component === 'number_float'}
                                                 <input 
                                                     class:invalid={validationState[prop.name] === false}
@@ -414,8 +414,26 @@
                                                     </select>
                                                     <div class="dropdown-arrow-icon"></div>												
                                                 </div>
+                                            {:else if prop.component === 'radio'}
+                                                <div class="radio-group" class:disabled={!is_interactive} on:change={() => dispatch_update('change', prop)}>
+                                                    {#if Array.isArray(prop.choices)}
+                                                        {#each prop.choices as choice}
+                                                            <div class="radio-item">
+                                                                <input 
+                                                                    type="radio" 
+                                                                    id="{prop.name}-{choice}" 
+                                                                    name={prop.name}
+                                                                    value={choice}
+                                                                    bind:group={prop.value}
+                                                                    disabled={!is_interactive}
+                                                                >
+                                                                <label for="{prop.name}-{choice}">{choice}</label>
+                                                            </div>
+                                                        {/each}
+                                                    {/if}
+                                                </div>
                                             {/if}
-                                            
+
                                             <!-- Reset button, visible only when the current value differs from the initial value -->
                                             {#if prop.component !== 'checkbox'}
                                                 <button 
@@ -598,7 +616,7 @@
         position: relative;
         width: var(--size-4);
         height: var(--size-4);
-        border-radius: 0;
+        border-radius: 5px !important;
         border: 1px solid var(--checkbox-border-color);
         background-color: var(--checkbox-background-color);
         box-shadow: var(--checkbox-shadow);
@@ -617,7 +635,7 @@
     }
     .prop-control input[type="checkbox"]:checked {
         background-color: var(--checkbox-background-color-selected);
-        border-color: var(--checkbox-border-color-focus);
+        border-color: var(--checkbox-border-color-focus);        
     }
     .prop-control input[type="checkbox"]:checked::after {
         content: "";
@@ -630,6 +648,7 @@
         border: solid var(--checkbox-label-text-color-selected);
         border-width: 0 2px 2px 0;
         transform: translate(-50%, -60%) rotate(45deg);
+        
     }
     .slider-container {
         display: flex;
@@ -806,5 +825,46 @@
 	    opacity: 0.3;
 	    cursor: not-allowed;
 	    background-color: transparent !important;
+	}
+    
+    .radio-group {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--spacing-sm);
+		width: 100%;
+	}
+	.radio-item input[type="radio"] {
+		/* Hide the default radio button */
+		display: none;
+	}
+	.radio-item label {
+		display: inline-block;
+		padding: var(--spacing-xs) var(--spacing-md);
+		border: 1px solid var(--border-color-primary);
+        border-radius: 5px !important;
+		background-color: var(--input-background-fill);
+		color: var(--body-text-color);
+		font-size: var(--text-xs);
+		cursor: pointer;
+		user-select: none;
+		transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+	}
+	.radio-group.disabled .radio-item label {
+		cursor: not-allowed;
+	}
+	.radio-item input[type="radio"]:hover + label {
+		border-color: var(--border-color-accent-subdued);
+		background-color: var(--background-fill-secondary-hover);
+	}
+	.radio-item input[type="radio"]:checked + label {
+		background-color: var(--primary-500);
+		border-color: var(--primary-500);
+		color: white;
+		font-weight: var(--font-weight-bold);
+	}
+	.radio-group.disabled .radio-item input[type="radio"]:checked + label {
+		background-color: var(--neutral-300);
+		border-color: var(--neutral-300);
+		color: var(--neutral-500);
 	}
 </style>

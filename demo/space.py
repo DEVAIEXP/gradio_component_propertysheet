@@ -65,6 +65,10 @@ class ModelSettings:
 
 @dataclass
 class SamplingSettings:
+    scheduler: Literal["Karras", "Simple", "Exponential"] = field(
+        default="Karras",
+        metadata={"component": "radio", "label": "Scheduler"}
+    )
     sampler_name: Literal["Euler", "Euler a", "DPM++ 2M Karras", "UniPC"] = field(
         default="DPM++ 2M Karras",
         metadata={"component": "dropdown", "label": "Sampler"},
@@ -81,6 +85,7 @@ class SamplingSettings:
 
 @dataclass
 class RenderConfig:
+    randomize_seed: bool = field(default=True, metadata={"label": "Randomize Seed"})
     seed: int = field(
         default=-1,
         metadata={"component": "number_integer", "label": "Seed (-1 for random)"},

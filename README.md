@@ -10,7 +10,7 @@ app_file: space.py
 ---
 
 # `gradio_propertysheet`
-<img alt="Static Badge" src="https://img.shields.io/badge/version%20-%200.0.5%20-%20blue"> <a href="https://huggingface.co/spaces/elismasilva/gradio_propertysheet"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-blue"></a><p><span>💻 <a href='https://github.com/DEVAIEXP/gradio_component_propertysheet'>Component GitHub Code</a></span></p>
+<img alt="Static Badge" src="https://img.shields.io/badge/version%20-%200.0.6%20-%20blue"> <a href="https://huggingface.co/spaces/elismasilva/gradio_propertysheet"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-blue"></a><p><span>💻 <a href='https://github.com/DEVAIEXP/gradio_component_propertysheet'>Component GitHub Code</a></span></p>
 
 The **PropertySheet** component for Gradio allows you to automatically generate a complete and interactive settings panel from a standard Python `dataclass`. It's designed to bring the power of IDE-like property editors directly into your Gradio applications.
 
@@ -26,6 +26,7 @@ The **PropertySheet** component for Gradio allows you to automatically generate 
   - `typing.Literal` -> Dropdown
 - **Metadata-Driven Components**: Force a specific component using metadata:
   - `metadata={"component": "slider"}`
+  - `metadata={"component": "radio"}`
   - `metadata={"component": "colorpicker"}`
 - **Nested Groups**: Nested `dataclasses` are rendered as collapsible groups for organization.
 - **Conditional Visibility**: Show or hide fields based on the value of others using `interactive_if` metadata.
@@ -72,6 +73,10 @@ class ModelSettings:
 
 @dataclass
 class SamplingSettings:
+    scheduler: Literal["Karras", "Simple", "Exponential"] = field(
+        default="Karras",
+        metadata={"component": "radio", "label": "Scheduler"}
+    )
     sampler_name: Literal["Euler", "Euler a", "DPM++ 2M Karras", "UniPC"] = field(
         default="DPM++ 2M Karras",
         metadata={"component": "dropdown", "label": "Sampler"},
@@ -88,6 +93,7 @@ class SamplingSettings:
 
 @dataclass
 class RenderConfig:
+    randomize_seed: bool = field(default=True, metadata={"label": "Randomize Seed"})
     seed: int = field(
         default=-1,
         metadata={"component": "number_integer", "label": "Seed (-1 for random)"},
