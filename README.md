@@ -10,7 +10,7 @@ app_file: space.py
 ---
 
 # `gradio_propertysheet`
-<img alt="Static Badge" src="https://img.shields.io/badge/version%20-%200.0.6%20-%20blue"> <a href="https://huggingface.co/spaces/elismasilva/gradio_propertysheet"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-blue"></a><p><span>💻 <a href='https://github.com/DEVAIEXP/gradio_component_propertysheet'>Component GitHub Code</a></span></p>
+<img alt="Static Badge" src="https://img.shields.io/badge/version%20-%200.0.7%20-%20blue"> <a href="https://huggingface.co/spaces/elismasilva/gradio_propertysheet"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-blue"></a><p><span>💻 <a href='https://github.com/DEVAIEXP/gradio_component_propertysheet'>Component GitHub Code</a></span></p>
 
 The **PropertySheet** component for Gradio allows you to automatically generate a complete and interactive settings panel from a standard Python `dataclass`. It's designed to bring the power of IDE-like property editors directly into your Gradio applications.
 
@@ -39,6 +39,7 @@ The **PropertySheet** component for Gradio allows you to automatically generate 
 
 ## Installation
 
+
 ```bash
 pip install gradio_propertysheet
 ```
@@ -65,7 +66,7 @@ class ModelSettings:
         default="/path/to/default.safetensors",
         metadata={
             "label": "Custom Model Path",
-            "interactive_if": {"field": "model_type", "value": "Custom"},
+            "interactive_if": {"field": "model.model_type", "value": "Custom"},
         },
     )
     vae_path: str = field(default="", metadata={"label": "VAE Path (optional)"})
@@ -89,7 +90,21 @@ class SamplingSettings:
         default=7.0,
         metadata={"component": "slider", "minimum": 1.0, "maximum": 30.0, "step": 0.5},
     )
-
+    enable_advanced: bool = field(
+        default=False,
+        metadata={"label": "Enable Advanced Settings"}
+    )
+    advanced_option: float = field(
+        default=0.5,
+        metadata={
+            "label": "Advanced Option",
+            "component": "slider",
+            "minimum": 0.0,
+            "maximum": 1.0,
+            "step": 0.01,
+            "interactive_if": {"field": "sampling.enable_advanced", "value": True},
+        },
+    )
 
 @dataclass
 class RenderConfig:
@@ -211,6 +226,7 @@ with gr.Blocks(title="PropertySheet Demos") as demo:
                         height=550,
                         visible=False,
                         root_label="Generator",
+                        interactive=True
                     )
                     environment_sheet = PropertySheet(
                         value=initial_env_config,
@@ -219,6 +235,7 @@ with gr.Blocks(title="PropertySheet Demos") as demo:
                         open=False,
                         visible=False,
                         root_label="General",
+                        interactive=True
                     )
 
             def change_visibility(is_visible, render_cfg, env_cfg):
@@ -264,6 +281,29 @@ with gr.Blocks(title="PropertySheet Demos") as demo:
                 inputs=[environment_sheet, env_state],
                 outputs=[environment_sheet, output_env_json, env_state],
             )
+            
+            #In version 0.0.7, I moved the undo function to a new `undo` event. This was necessary to avoid conflict with the `change` event where it was previously implemented. 
+            # Now you need to implement the undo event for the undo button to work. You can simply receive the component as input and set it as output.
+            def render_undo(updated_config: RenderConfig, current_state: RenderConfig):
+                if updated_config is None:
+                    return current_state, asdict(current_state), current_state
+                return updated_config, asdict(updated_config), current_state
+            
+            def environment_undo(updated_config: EnvironmentConfig, current_state: EnvironmentConfig):
+                if updated_config is None:
+                    return current_state, asdict(current_state), current_state
+                return updated_config, asdict(updated_config), current_state
+            
+            render_sheet.undo(fn=render_undo, 
+                              inputs=[render_sheet, render_state], 
+                              outputs=[render_sheet, output_render_json, render_state]
+            )
+            environment_sheet.undo(fn=environment_undo, 
+                            inputs=[environment_sheet, env_state],
+                            outputs=[environment_sheet, output_env_json, env_state],
+            )
+            
+            
             demo.load(
                 fn=lambda r_cfg, e_cfg: (asdict(r_cfg), asdict(e_cfg)),
                 inputs=[render_state, env_state],
@@ -640,10 +680,11 @@ list[str] | str | None
 
 | name | description |
 |:-----|:------------|
-| `change` |  |
-| `input` |  |
-| `expand` |  |
-| `collapse` |  |
+| `change` | Triggered when the value of the PropertySheet changes either because of user input (e.g. a user types in a textbox) OR because of a function update (e.g. an image receives a value from the output of an event trigger). See `.input()` for a listener that is only triggered by user input. |
+| `input` | This listener is triggered when the user changes the value of the PropertySheet. |
+| `expand` | This listener is triggered when the PropertySheet is expanded. |
+| `collapse` | This listener is triggered when the PropertySheet is collapsed. |
+| `undo` | This listener is triggered when the user clicks the undo button in component. |
 
 
 

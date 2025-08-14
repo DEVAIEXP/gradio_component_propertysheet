@@ -3,7 +3,7 @@ import gradio as gr
 from app import demo as app
 import os
 
-_docs = {'PropertySheet': {'description': 'A Gradio component that renders a dynamic UI from a Python dataclass instance.\nIt allows for nested settings and automatically infers input types.', 'members': {'__init__': {'value': {'type': 'typing.Optional[typing.Any][Any, None]', 'default': 'None', 'description': 'The initial dataclass instance to render.'}, 'label': {'type': 'str | None', 'default': 'None', 'description': 'The main label for the component, displayed in the accordion header.'}, 'root_label': {'type': 'str', 'default': '"General"', 'description': 'The label for the root group of properties.'}, 'show_group_name_only_one': {'type': 'bool', 'default': 'True', 'description': 'If True, only the group name is shown when there is a single group.'}, 'disable_accordion': {'type': 'bool', 'default': 'False', 'description': 'If True, disables the accordion functionality.'}, 'visible': {'type': 'bool', 'default': 'True', 'description': 'If False, the component will be hidden.'}, 'open': {'type': 'bool', 'default': 'True', 'description': 'If False, the accordion will be collapsed by default.'}, 'elem_id': {'type': 'str | None', 'default': 'None', 'description': 'An optional string that is assigned as the id of this component in the DOM.'}, 'scale': {'type': 'int | None', 'default': 'None', 'description': 'The relative size of the component in its container.'}, 'width': {'type': 'int | str | None', 'default': 'None', 'description': 'The width of the component in pixels.'}, 'height': {'type': 'int | str | None', 'default': 'None', 'description': "The maximum height of the component's content area in pixels before scrolling."}, 'min_width': {'type': 'int | None', 'default': 'None', 'description': 'The minimum width of the component in pixels.'}, 'container': {'type': 'bool', 'default': 'True', 'description': 'If True, wraps the component in a container with a background.'}, 'elem_classes': {'type': 'list[str] | str | None', 'default': 'None', 'description': 'An optional list of strings that are assigned as the classes of this component in the DOM.'}}, 'postprocess': {'value': {'type': 'Any', 'description': 'The dataclass instance to process.'}}, 'preprocess': {'return': {'type': 'Any', 'description': 'A new, updated instance of the dataclass.'}, 'value': None}}, 'events': {'change': {'type': None, 'default': None, 'description': ''}, 'input': {'type': None, 'default': None, 'description': ''}, 'expand': {'type': None, 'default': None, 'description': ''}, 'collapse': {'type': None, 'default': None, 'description': ''}}}, '__meta__': {'additional_interfaces': {}, 'user_fn_refs': {'PropertySheet': []}}}
+_docs = {'PropertySheet': {'description': 'A Gradio component that renders a dynamic UI from a Python dataclass instance.\nIt allows for nested settings and automatically infers input types.', 'members': {'__init__': {'value': {'type': 'typing.Optional[typing.Any][Any, None]', 'default': 'None', 'description': 'The initial dataclass instance to render.'}, 'label': {'type': 'str | None', 'default': 'None', 'description': 'The main label for the component, displayed in the accordion header.'}, 'root_label': {'type': 'str', 'default': '"General"', 'description': 'The label for the root group of properties.'}, 'show_group_name_only_one': {'type': 'bool', 'default': 'True', 'description': 'If True, only the group name is shown when there is a single group.'}, 'disable_accordion': {'type': 'bool', 'default': 'False', 'description': 'If True, disables the accordion functionality.'}, 'visible': {'type': 'bool', 'default': 'True', 'description': 'If False, the component will be hidden.'}, 'open': {'type': 'bool', 'default': 'True', 'description': 'If False, the accordion will be collapsed by default.'}, 'elem_id': {'type': 'str | None', 'default': 'None', 'description': 'An optional string that is assigned as the id of this component in the DOM.'}, 'scale': {'type': 'int | None', 'default': 'None', 'description': 'The relative size of the component in its container.'}, 'width': {'type': 'int | str | None', 'default': 'None', 'description': 'The width of the component in pixels.'}, 'height': {'type': 'int | str | None', 'default': 'None', 'description': "The maximum height of the component's content area in pixels before scrolling."}, 'min_width': {'type': 'int | None', 'default': 'None', 'description': 'The minimum width of the component in pixels.'}, 'container': {'type': 'bool', 'default': 'True', 'description': 'If True, wraps the component in a container with a background.'}, 'elem_classes': {'type': 'list[str] | str | None', 'default': 'None', 'description': 'An optional list of strings that are assigned as the classes of this component in the DOM.'}}, 'postprocess': {'value': {'type': 'Any', 'description': 'The dataclass instance to process.'}}, 'preprocess': {'return': {'type': 'Any', 'description': 'A new, updated instance of the dataclass.'}, 'value': None}}, 'events': {'change': {'type': None, 'default': None, 'description': 'Triggered when the value of the PropertySheet changes either because of user input (e.g. a user types in a textbox) OR because of a function update (e.g. an image receives a value from the output of an event trigger). See `.input()` for a listener that is only triggered by user input.'}, 'input': {'type': None, 'default': None, 'description': 'This listener is triggered when the user changes the value of the PropertySheet.'}, 'expand': {'type': None, 'default': None, 'description': 'This listener is triggered when the PropertySheet is expanded.'}, 'collapse': {'type': None, 'default': None, 'description': 'This listener is triggered when the PropertySheet is collapsed.'}, 'undo': {'type': None, 'default': None, 'description': 'This listener is triggered when the user clicks the undo button in component.'}}}, '__meta__': {'additional_interfaces': {}, 'user_fn_refs': {'PropertySheet': []}}}
 
 abs_path = os.path.join(os.path.dirname(__file__), "css.css")
 
@@ -57,7 +57,7 @@ class ModelSettings:
         default="/path/to/default.safetensors",
         metadata={
             "label": "Custom Model Path",
-            "interactive_if": {"field": "model_type", "value": "Custom"},
+            "interactive_if": {"field": "model.model_type", "value": "Custom"},
         },
     )
     vae_path: str = field(default="", metadata={"label": "VAE Path (optional)"})
@@ -81,7 +81,21 @@ class SamplingSettings:
         default=7.0,
         metadata={"component": "slider", "minimum": 1.0, "maximum": 30.0, "step": 0.5},
     )
-
+    enable_advanced: bool = field(
+        default=False,
+        metadata={"label": "Enable Advanced Settings"}
+    )
+    advanced_option: float = field(
+        default=0.5,
+        metadata={
+            "label": "Advanced Option",
+            "component": "slider",
+            "minimum": 0.0,
+            "maximum": 1.0,
+            "step": 0.01,
+            "interactive_if": {"field": "sampling.enable_advanced", "value": True},
+        },
+    )
 
 @dataclass
 class RenderConfig:
@@ -203,6 +217,7 @@ with gr.Blocks(title="PropertySheet Demos") as demo:
                         height=550,
                         visible=False,
                         root_label="Generator",
+                        interactive=True
                     )
                     environment_sheet = PropertySheet(
                         value=initial_env_config,
@@ -211,6 +226,7 @@ with gr.Blocks(title="PropertySheet Demos") as demo:
                         open=False,
                         visible=False,
                         root_label="General",
+                        interactive=True
                     )
 
             def change_visibility(is_visible, render_cfg, env_cfg):
@@ -256,6 +272,29 @@ with gr.Blocks(title="PropertySheet Demos") as demo:
                 inputs=[environment_sheet, env_state],
                 outputs=[environment_sheet, output_env_json, env_state],
             )
+            
+            #In version 0.0.7, I moved the undo function to a new `undo` event. This was necessary to avoid conflict with the `change` event where it was previously implemented. 
+            # Now you need to implement the undo event for the undo button to work. You can simply receive the component as input and set it as output.
+            def render_undo(updated_config: RenderConfig, current_state: RenderConfig):
+                if updated_config is None:
+                    return current_state, asdict(current_state), current_state
+                return updated_config, asdict(updated_config), current_state
+            
+            def environment_undo(updated_config: EnvironmentConfig, current_state: EnvironmentConfig):
+                if updated_config is None:
+                    return current_state, asdict(current_state), current_state
+                return updated_config, asdict(updated_config), current_state
+            
+            render_sheet.undo(fn=render_undo, 
+                              inputs=[render_sheet, render_state], 
+                              outputs=[render_sheet, output_render_json, render_state]
+            )
+            environment_sheet.undo(fn=environment_undo, 
+                            inputs=[environment_sheet, env_state],
+                            outputs=[environment_sheet, output_env_json, env_state],
+            )
+            
+            
             demo.load(
                 fn=lambda r_cfg, e_cfg: (asdict(r_cfg), asdict(e_cfg)),
                 inputs=[render_state, env_state],

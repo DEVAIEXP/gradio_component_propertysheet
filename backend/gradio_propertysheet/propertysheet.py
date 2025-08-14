@@ -1,11 +1,12 @@
 from __future__ import annotations
 import copy
+import json
 from typing import Any, Dict, List, get_type_hints
 import dataclasses
 from gradio.components.base import Component
 from gradio_propertysheet.helpers import extract_prop_metadata
 from gradio_client.documentation import document
-
+from gradio.events import Events, EventListener
 def prop_meta(**kwargs) -> dataclasses.Field:
     """
     A helper function to create a dataclass field with Gradio-specific metadata.
@@ -14,14 +15,26 @@ def prop_meta(**kwargs) -> dataclasses.Field:
         A dataclasses.Field instance with the provided metadata.
     """
     return dataclasses.field(metadata=kwargs)
+
 @document()
 class PropertySheet(Component):
     """
     A Gradio component that renders a dynamic UI from a Python dataclass instance.
     It allows for nested settings and automatically infers input types.
     """
-    EVENTS = ["change", "input", "expand", "collapse"]
+    undo = EventListener(
+        "undo",
+        doc="This listener is triggered when the user clicks the undo button in component.",        
+    )
 
+    EVENTS = [        
+        Events.change,
+        Events.input,
+        Events.expand,
+        Events.collapse,
+        undo        
+    ]
+    
     def __init__(
         self, 
         value: Any | None = None, 
@@ -151,7 +164,7 @@ class PropertySheet(Component):
             
             # No need to add to used_group_names as it's the last one
             json_schema.insert(0, {"group_name": unique_root_label, "properties": root_properties})
-
+                
         return json_schema
     
     @document()

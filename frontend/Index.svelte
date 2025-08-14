@@ -38,7 +38,7 @@
     /** If false, all controls are disabled. */
     export let interactive: boolean = true;
     /** The Gradio event dispatcher instance. */
-    export let gradio: Gradio<{ change: any, reset: any, input: any, clear_status: never, expand: never, collapse: never }>;
+    export let gradio: Gradio<{ change: any, reset: any, input: any, clear_status: never, expand: never, collapse: never, undo: any }>;
 
     // --- Internal State ---
     /** Tracks the open/closed state of each individual property group. */
@@ -244,7 +244,7 @@
             return group;
         });
         value = updatedValue;
-        gradio.dispatch("change", updatedValue);
+        gradio.dispatch("undo", updatedValue);
         setTimeout(() => { isResetting = false; }, 100);
     }
 

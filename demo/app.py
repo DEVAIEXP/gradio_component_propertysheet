@@ -17,7 +17,7 @@ class ModelSettings:
         default="/path/to/default.safetensors",
         metadata={
             "label": "Custom Model Path",
-            "interactive_if": {"field": "model_type", "value": "Custom"},
+            "interactive_if": {"field": "model.model_type", "value": "Custom"},
         },
     )
     vae_path: str = field(default="", metadata={"label": "VAE Path (optional)"})
@@ -41,7 +41,21 @@ class SamplingSettings:
         default=7.0,
         metadata={"component": "slider", "minimum": 1.0, "maximum": 30.0, "step": 0.5},
     )
-
+    enable_advanced: bool = field(
+        default=False,
+        metadata={"label": "Enable Advanced Settings"}
+    )
+    advanced_option: float = field(
+        default=0.5,
+        metadata={
+            "label": "Advanced Option",
+            "component": "slider",
+            "minimum": 0.0,
+            "maximum": 1.0,
+            "step": 0.01,
+            "interactive_if": {"field": "sampling.enable_advanced", "value": True},
+        },
+    )
 
 @dataclass
 class RenderConfig:
@@ -163,6 +177,7 @@ with gr.Blocks(title="PropertySheet Demos") as demo:
                         height=550,
                         visible=False,
                         root_label="Generator",
+                        interactive=True
                     )
                     environment_sheet = PropertySheet(
                         value=initial_env_config,
@@ -171,6 +186,7 @@ with gr.Blocks(title="PropertySheet Demos") as demo:
                         open=False,
                         visible=False,
                         root_label="General",
+                        interactive=True
                     )
 
             def change_visibility(is_visible, render_cfg, env_cfg):
@@ -216,6 +232,29 @@ with gr.Blocks(title="PropertySheet Demos") as demo:
                 inputs=[environment_sheet, env_state],
                 outputs=[environment_sheet, output_env_json, env_state],
             )
+            
+            #In version 0.0.7, I moved the undo function to a new `undo` event. This was necessary to avoid conflict with the `change` event where it was previously implemented. 
+            # Now you need to implement the undo event for the undo button to work. You can simply receive the component as input and set it as output.
+            def render_undo(updated_config: RenderConfig, current_state: RenderConfig):
+                if updated_config is None:
+                    return current_state, asdict(current_state), current_state
+                return updated_config, asdict(updated_config), current_state
+            
+            def environment_undo(updated_config: EnvironmentConfig, current_state: EnvironmentConfig):
+                if updated_config is None:
+                    return current_state, asdict(current_state), current_state
+                return updated_config, asdict(updated_config), current_state
+            
+            render_sheet.undo(fn=render_undo, 
+                              inputs=[render_sheet, render_state], 
+                              outputs=[render_sheet, output_render_json, render_state]
+            )
+            environment_sheet.undo(fn=environment_undo, 
+                            inputs=[environment_sheet, env_state],
+                            outputs=[environment_sheet, output_env_json, env_state],
+            )
+            
+            
             demo.load(
                 fn=lambda r_cfg, e_cfg: (asdict(r_cfg), asdict(e_cfg)),
                 inputs=[render_state, env_state],
