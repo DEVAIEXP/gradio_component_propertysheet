@@ -480,6 +480,7 @@
         padding: var(--block-title-padding);
         background: var(--block-title-background-fill);
         color: var(--block-title-text-color);
+        border-width: 0;
         flex-shrink: 0;
     }
     .accordion-icon{

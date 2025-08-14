@@ -121,8 +121,7 @@ class PropertySheet(Component):
         if current_value is None or not dataclasses.is_dataclass(current_value): 
             return []
             
-        json_schema, root_properties = [], []
-      
+        json_schema, root_properties = [], []      
         used_group_names = set()
 
         # Process nested dataclasses first
@@ -138,7 +137,7 @@ class PropertySheet(Component):
                     metadata["name"] = f"{field.name}.{group_field.name}"
                     group_props.append(metadata)
                                 
-                base_group_name = field.name.replace("_", " ").title()
+                base_group_name = field.metadata.get("label", field.name.replace("_", " ").title())
                 unique_group_name = base_group_name
                 counter = 2
                 # If the name is already used, append a counter until it's unique
@@ -164,7 +163,7 @@ class PropertySheet(Component):
             
             # No need to add to used_group_names as it's the last one
             json_schema.insert(0, {"group_name": unique_root_label, "properties": root_properties})
-                
+        
         return json_schema
     
     @document()
@@ -189,25 +188,27 @@ class PropertySheet(Component):
 
         if isinstance(payload, list):
             for group in payload:
-                # We need to handle the potentially renamed root group
                 group_name_key = None
-                # Find the corresponding field name in the dataclass for this group
-                # This logic is a bit complex, it matches "General (Root)" back to the correct field
+                # Handle the root group
                 potential_root_name = group["group_name"].replace(" (Root)", "")
                 if potential_root_name == self.root_label:
-                    # This is the root group, properties are at the top level
                     group_name_key = None
                 else:
+                    # Check dataclass fields for a matching name or metadata label
                     for f in dataclasses.fields(reconstructed_obj):
+                        # Check metadata label first
+                        metadata_label = f.metadata.get("label", f.name.replace("_", " ").title())
+                        if metadata_label == group["group_name"]:
+                            group_name_key = f.name
+                            break
+                        # Fallback to field name
                         if f.name.replace("_", " ").title() == group["group_name"]:
                             group_name_key = f.name
                             break
 
                 for prop in group.get("properties", []):
-                    # Reconstruct the full key path
                     full_key = prop["name"]
                     if '.' not in full_key and group_name_key is not None:
-                        # This case is less likely with our current postprocess, but is a safeguard
                         full_key = f"{group_name_key}.{prop['name']}"
                     
                     value_map[full_key] = prop["value"]

@@ -56,7 +56,16 @@ class SamplingSettings:
             "interactive_if": {"field": "sampling.enable_advanced", "value": True},
         },
     )
-
+    temperature: float = field(
+        default=1.0,
+        metadata={
+            "label": "Sampling Temperature",
+            "component": "number_float",
+            "minimum": 0.1,
+            "maximum": 2.0,
+            "step": 0.1
+        }
+    )
 @dataclass
 class RenderConfig:
     randomize_seed: bool = field(default=True, metadata={"label": "Randomize Seed"})
@@ -64,7 +73,7 @@ class RenderConfig:
         default=-1,
         metadata={"component": "number_integer", "label": "Seed (-1 for random)"},
     )
-    model: ModelSettings = field(default_factory=ModelSettings)
+    model: ModelSettings = field(default_factory=ModelSettings, metadata={"label": "Model Settings"})
     sampling: SamplingSettings = field(default_factory=SamplingSettings)
 
 
@@ -109,6 +118,7 @@ sampler_settings_map_py = {
     "Euler": EulerSettings(),
     "DPM++ 2M Karras": DPM_Settings(),
     "UniPC": None,
+    "CustomSampler": SamplingSettings()
 }
 model_settings_map_py = {
     "SDXL 1.0": DPM_Settings(),
@@ -205,9 +215,7 @@ with gr.Blocks(title="PropertySheet Demos") as demo:
                 if updated_config is None:
                     return current_state, asdict(current_state), current_state
                 if updated_config.model.model_type != "Custom":
-                    updated_config.model.custom_model_path = (
-                        "/path/to/default.safetensors"
-                    )
+                    updated_config.model.custom_model_path = "/path/to/default.safetensors"                
                 return updated_config, asdict(updated_config), updated_config
 
             def handle_env_change(
