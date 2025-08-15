@@ -66,16 +66,7 @@ class SamplingSettings:
             "step": 0.1
         }
     )
-@dataclass
-class InjectionScaleConfig:
-    """Configuration for a single dynamic injection scale."""   
-    scale_end: float = field(default=1.0, metadata={"component": "slider", "minimum": 0.0, "maximum": 2.0, "step": 1.0, "label": "ControlNet Scale", "help": "The weight of the ControlNet guidance."}) 
-    linear: bool = field(default=False, metadata={"label": "Use Linear CFG", "help": "Linearly increase CFG scale during sampling."})    
-    scale_start: float = field(default=1.0, metadata={"interactive_if": {"field": "sft_post_mid.linear", "value": True},"component": "slider", "minimum": 0.0, "maximum": 20.0, "step": 0.1, "label": "Guidance Scale Start", "help": "The starting value for linear CFG scaling."}) 
-    reverse: bool = field(default=False, metadata={"interactive_if": {"field": "sft_post_mid.linear", "value": True},"label": "Reverse Linear CFG", "help": "Linearly decrease CFG scale during sampling."})
-@dataclass
-class SUPIRInjectionSFTPostMid(InjectionScaleConfig):
-    sft_postmid_active: bool = field(default=True, metadata={"label": "SFT Post-Mid"})    
+
 @dataclass
 class RenderConfig:
     randomize_seed: bool = field(default=True, metadata={"label": "Randomize Seed"})
@@ -85,7 +76,6 @@ class RenderConfig:
     )
     model: ModelSettings = field(default_factory=ModelSettings, metadata={"label": "Model Settings"})
     sampling: SamplingSettings = field(default_factory=SamplingSettings)
-    sft_post_mid: SUPIRInjectionSFTPostMid = field(default_factory=SUPIRInjectionSFTPostMid, metadata={"label": "SUPIR SFT Post Mid"})
 
 @dataclass
 class Lighting:

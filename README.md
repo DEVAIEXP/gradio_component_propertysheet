@@ -10,11 +10,35 @@ app_file: space.py
 ---
 
 # `gradio_propertysheet`
-<a href="https://pypi.org/project/gradio_propertysheet/" target="_blank"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/gradio_propertysheet"></a>  
+<img alt="Static Badge" src="https://img.shields.io/badge/version%20-%200.0.9%20-%20blue"> <a href="https://huggingface.co/spaces/elismasilva/gradio_propertysheet"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-blue"></a><p><span>💻 <a href='https://github.com/DEVAIEXP/gradio_component_propertysheet'>Component GitHub Code</a></span></p>
 
-Property sheet
+The **PropertySheet** component for Gradio allows you to automatically generate a complete and interactive settings panel from a standard Python `dataclass`. It's designed to bring the power of IDE-like property editors directly into your Gradio applications.
+
+<img src="https://huggingface.co/datasets/DEVAIEXP/assets/resolve/main/gradio_propertysheet_demo.png" alt="PropertySheet Demo"> 
+
+## Key Features
+
+- **Automatic UI Generation**: Instantly converts `dataclass` fields into a structured UI.
+- **Rich Component Support**: Automatically maps Python types to UI controls:
+  - `str` -> Text Input
+  - `int`, `float` -> Number Input
+  - `bool` -> Styled Checkbox
+  - `typing.Literal` -> Dropdown
+- **Metadata-Driven Components**: Force a specific component using metadata:
+  - `metadata={"component": "slider"}`
+  - `metadata={"component": "radio"}`
+  - `metadata={"component": "colorpicker"}`
+- **Nested Groups**: Nested `dataclasses` are rendered as collapsible groups for organization.
+- **Conditional Visibility**: Show or hide fields based on the value of others using `interactive_if` metadata.
+- **Built-in Helpers**:
+  - **Tooltips**: Add `help` text to any property's metadata for an info icon.
+  - **Reset Button**: Each property gets a button to reset its value to default.
+- **Accordion Layout**: The entire component can act as a main collapsible accordion panel using the `open` parameter.
+- **Theme-Aware**: Designed to look and feel native in all Gradio themes.
+- **Dynamic Updates**: Supports advanced patterns where changing one field (e.g., a model selector) can dynamically update the options of another field (e.g., a sampler dropdown).
 
 ## Installation
+
 
 ```bash
 pip install gradio_propertysheet
@@ -91,16 +115,7 @@ class SamplingSettings:
             "step": 0.1
         }
     )
-@dataclass
-class InjectionScaleConfig:
-    """Configuration for a single dynamic injection scale."""   
-    scale_end: float = field(default=1.0, metadata={"component": "slider", "minimum": 0.0, "maximum": 2.0, "step": 1.0, "label": "ControlNet Scale", "help": "The weight of the ControlNet guidance."}) 
-    linear: bool = field(default=False, metadata={"label": "Use Linear CFG", "help": "Linearly increase CFG scale during sampling."})    
-    scale_start: float = field(default=1.0, metadata={"interactive_if": {"field": "sft_post_mid.linear", "value": True},"component": "slider", "minimum": 0.0, "maximum": 20.0, "step": 0.1, "label": "Guidance Scale Start", "help": "The starting value for linear CFG scaling."}) 
-    reverse: bool = field(default=False, metadata={"interactive_if": {"field": "sft_post_mid.linear", "value": True},"label": "Reverse Linear CFG", "help": "Linearly decrease CFG scale during sampling."})
-@dataclass
-class SUPIRInjectionSFTPostMid(InjectionScaleConfig):
-    sft_postmid_active: bool = field(default=True, metadata={"label": "SFT Post-Mid"})    
+
 @dataclass
 class RenderConfig:
     randomize_seed: bool = field(default=True, metadata={"label": "Randomize Seed"})
@@ -110,7 +125,6 @@ class RenderConfig:
     )
     model: ModelSettings = field(default_factory=ModelSettings, metadata={"label": "Model Settings"})
     sampling: SamplingSettings = field(default_factory=SamplingSettings)
-    sft_post_mid: SUPIRInjectionSFTPostMid = field(default_factory=SUPIRInjectionSFTPostMid, metadata={"label": "SUPIR SFT Post Mid"})
 
 @dataclass
 class Lighting:
