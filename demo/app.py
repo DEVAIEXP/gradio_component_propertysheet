@@ -17,7 +17,7 @@ class ModelSettings:
         default="/path/to/default.safetensors",
         metadata={
             "label": "Custom Model Path",
-            "interactive_if": {"field": "model.model_type", "value": "Custom"},
+            "interactive_if": {"field": "model_type", "value": "Custom"},
         },
     )
     vae_path: str = field(default="", metadata={"label": "VAE Path (optional)"})
@@ -53,7 +53,7 @@ class SamplingSettings:
             "minimum": 0.0,
             "maximum": 1.0,
             "step": 0.01,
-            "interactive_if": {"field": "sampling.enable_advanced", "value": True},
+            "interactive_if": {"field": "enable_advanced", "value": True},
         },
     )
     temperature: float = field(
@@ -67,6 +67,16 @@ class SamplingSettings:
         }
     )
 @dataclass
+class InjectionScaleConfig:
+    """Configuration for a single dynamic injection scale."""   
+    scale_end: float = field(default=1.0, metadata={"component": "slider", "minimum": 0.0, "maximum": 2.0, "step": 1.0, "label": "ControlNet Scale", "help": "The weight of the ControlNet guidance."}) 
+    linear: bool = field(default=False, metadata={"label": "Use Linear CFG", "help": "Linearly increase CFG scale during sampling."})    
+    scale_start: float = field(default=1.0, metadata={"interactive_if": {"field": "sft_post_mid.linear", "value": True},"component": "slider", "minimum": 0.0, "maximum": 20.0, "step": 0.1, "label": "Guidance Scale Start", "help": "The starting value for linear CFG scaling."}) 
+    reverse: bool = field(default=False, metadata={"interactive_if": {"field": "sft_post_mid.linear", "value": True},"label": "Reverse Linear CFG", "help": "Linearly decrease CFG scale during sampling."})
+@dataclass
+class SUPIRInjectionSFTPostMid(InjectionScaleConfig):
+    sft_postmid_active: bool = field(default=True, metadata={"label": "SFT Post-Mid"})    
+@dataclass
 class RenderConfig:
     randomize_seed: bool = field(default=True, metadata={"label": "Randomize Seed"})
     seed: int = field(
@@ -75,7 +85,7 @@ class RenderConfig:
     )
     model: ModelSettings = field(default_factory=ModelSettings, metadata={"label": "Model Settings"})
     sampling: SamplingSettings = field(default_factory=SamplingSettings)
-
+    sft_post_mid: SUPIRInjectionSFTPostMid = field(default_factory=SUPIRInjectionSFTPostMid, metadata={"label": "SUPIR SFT Post Mid"})
 
 @dataclass
 class Lighting:
@@ -187,7 +197,7 @@ with gr.Blocks(title="PropertySheet Demos") as demo:
                         height=550,
                         visible=False,
                         root_label="Generator",
-                        interactive=True
+                        interactive=True                        
                     )
                     environment_sheet = PropertySheet(
                         value=initial_env_config,
@@ -196,7 +206,8 @@ with gr.Blocks(title="PropertySheet Demos") as demo:
                         open=False,
                         visible=False,
                         root_label="General",
-                        interactive=True
+                        interactive=True,
+                        root_properties_first=False
                     )
 
             def change_visibility(is_visible, render_cfg, env_cfg):

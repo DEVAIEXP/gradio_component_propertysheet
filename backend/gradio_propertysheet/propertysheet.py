@@ -42,6 +42,7 @@ class PropertySheet(Component):
         label: str | None = None,
         root_label: str = "General",
         show_group_name_only_one: bool = True,
+        root_properties_first: bool = True,
         disable_accordion: bool = False,
         visible: bool = True,
         open: bool = True,
@@ -62,6 +63,7 @@ class PropertySheet(Component):
             label: The main label for the component, displayed in the accordion header.
             root_label: The label for the root group of properties.
             show_group_name_only_one: If True, only the group name is shown when there is a single group.
+            root_properties_first: If True (default), root-level properties are rendered before nested groups. If False, they are rendered after.
             disable_accordion: If True, disables the accordion functionality.
             visible: If False, the component will be hidden.
             open: If False, the accordion will be collapsed by default.
@@ -86,6 +88,7 @@ class PropertySheet(Component):
         self.open = open
         self.root_label = root_label
         self.show_group_name_only_one = show_group_name_only_one
+        self.root_properties_first = root_properties_first
         self.disable_accordion = disable_accordion
         
         super().__init__(
@@ -132,23 +135,39 @@ class PropertySheet(Component):
             if is_nested_dataclass:
                 group_obj = getattr(current_value, field.name)
                 group_props = []
-                for group_field in dataclasses.fields(group_obj):
-                    metadata = extract_prop_metadata(group_obj, group_field)
+                group_type = type(group_obj)
+                parent_dataclass = next((b for b in group_type.__bases__ if dataclasses.is_dataclass(b)), None)
+                
+                reordered_fields = []
+                if parent_dataclass:                    
+                    all_fields = dataclasses.fields(group_type)
+                    parent_field_names = {f.name for f in dataclasses.fields(parent_dataclass)}
+                                        
+                    own_fields = [f for f in all_fields if f.name not in parent_field_names]                    
+                    inherited_fields = [f for f in all_fields if f.name in parent_field_names]                                        
+                    reordered_fields = own_fields + inherited_fields
+                else:                    
+                    reordered_fields = dataclasses.fields(group_type)
+                                
+                for group_field in reordered_fields:
+                    metadata = extract_prop_metadata(group_obj, group_field)                
+                    if "interactive_if" in metadata and "." not in metadata["interactive_if"]["field"]:
+                        relative_field_name = metadata["interactive_if"]["field"]
+                        metadata["interactive_if"]["field"] = f"{field.name}.{relative_field_name}"
+                    
                     metadata["name"] = f"{field.name}.{group_field.name}"
                     group_props.append(metadata)
                                 
-                base_group_name = field.metadata.get("label", field.name.replace("_", " ").title())
+                base_group_name = field.name.replace("_", " ").title()
                 unique_group_name = base_group_name
                 counter = 2
-                # If the name is already used, append a counter until it's unique
                 while unique_group_name in used_group_names:
                     unique_group_name = f"{base_group_name} ({counter})"
                     counter += 1
                 
-                used_group_names.add(unique_group_name) # Add the final unique name to the set
+                used_group_names.add(unique_group_name)
                 json_schema.append({"group_name": unique_group_name, "properties": group_props})
             else:
-                # Collect root properties to be processed later
                 root_properties.append(extract_prop_metadata(current_value, field))
         
         # Process root properties, if any exist
@@ -161,8 +180,11 @@ class PropertySheet(Component):
                 unique_root_label = f"{base_root_label} ({counter})"
                 counter += 1
             
-            # No need to add to used_group_names as it's the last one
-            json_schema.insert(0, {"group_name": unique_root_label, "properties": root_properties})
+            root_group = {"group_name": unique_root_label, "properties": root_properties}            
+            if self.root_properties_first:
+                json_schema.insert(0, root_group)
+            else:
+                json_schema.append(root_group)            
         
         return json_schema
     

@@ -10,32 +10,9 @@ app_file: space.py
 ---
 
 # `gradio_propertysheet`
-<img alt="Static Badge" src="https://img.shields.io/badge/version%20-%200.0.8%20-%20blue"> <a href="https://huggingface.co/spaces/elismasilva/gradio_propertysheet"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-blue"></a><p><span>💻 <a href='https://github.com/DEVAIEXP/gradio_component_propertysheet'>Component GitHub Code</a></span></p>
+<a href="https://pypi.org/project/gradio_propertysheet/" target="_blank"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/gradio_propertysheet"></a>  
 
-The **PropertySheet** component for Gradio allows you to automatically generate a complete and interactive settings panel from a standard Python `dataclass`. It's designed to bring the power of IDE-like property editors directly into your Gradio applications.
-
-<img src="https://huggingface.co/datasets/DEVAIEXP/assets/resolve/main/gradio_propertysheet_demo.png" alt="PropertySheet Demo"> 
-
-## Key Features
-
-- **Automatic UI Generation**: Instantly converts `dataclass` fields into a structured UI.
-- **Rich Component Support**: Automatically maps Python types to UI controls:
-  - `str` -> Text Input
-  - `int`, `float` -> Number Input
-  - `bool` -> Styled Checkbox
-  - `typing.Literal` -> Dropdown
-- **Metadata-Driven Components**: Force a specific component using metadata:
-  - `metadata={"component": "slider"}`
-  - `metadata={"component": "radio"}`
-  - `metadata={"component": "colorpicker"}`
-- **Nested Groups**: Nested `dataclasses` are rendered as collapsible groups for organization.
-- **Conditional Visibility**: Show or hide fields based on the value of others using `interactive_if` metadata.
-- **Built-in Helpers**:
-  - **Tooltips**: Add `help` text to any property's metadata for an info icon.
-  - **Reset Button**: Each property gets a button to reset its value to default.
-- **Accordion Layout**: The entire component can act as a main collapsible accordion panel using the `open` parameter.
-- **Theme-Aware**: Designed to look and feel native in all Gradio themes.
-- **Dynamic Updates**: Supports advanced patterns where changing one field (e.g., a model selector) can dynamically update the options of another field (e.g., a sampler dropdown).
+Property sheet
 
 ## Installation
 
@@ -65,7 +42,7 @@ class ModelSettings:
         default="/path/to/default.safetensors",
         metadata={
             "label": "Custom Model Path",
-            "interactive_if": {"field": "model.model_type", "value": "Custom"},
+            "interactive_if": {"field": "model_type", "value": "Custom"},
         },
     )
     vae_path: str = field(default="", metadata={"label": "VAE Path (optional)"})
@@ -101,7 +78,7 @@ class SamplingSettings:
             "minimum": 0.0,
             "maximum": 1.0,
             "step": 0.01,
-            "interactive_if": {"field": "sampling.enable_advanced", "value": True},
+            "interactive_if": {"field": "enable_advanced", "value": True},
         },
     )
     temperature: float = field(
@@ -115,6 +92,16 @@ class SamplingSettings:
         }
     )
 @dataclass
+class InjectionScaleConfig:
+    """Configuration for a single dynamic injection scale."""   
+    scale_end: float = field(default=1.0, metadata={"component": "slider", "minimum": 0.0, "maximum": 2.0, "step": 1.0, "label": "ControlNet Scale", "help": "The weight of the ControlNet guidance."}) 
+    linear: bool = field(default=False, metadata={"label": "Use Linear CFG", "help": "Linearly increase CFG scale during sampling."})    
+    scale_start: float = field(default=1.0, metadata={"interactive_if": {"field": "sft_post_mid.linear", "value": True},"component": "slider", "minimum": 0.0, "maximum": 20.0, "step": 0.1, "label": "Guidance Scale Start", "help": "The starting value for linear CFG scaling."}) 
+    reverse: bool = field(default=False, metadata={"interactive_if": {"field": "sft_post_mid.linear", "value": True},"label": "Reverse Linear CFG", "help": "Linearly decrease CFG scale during sampling."})
+@dataclass
+class SUPIRInjectionSFTPostMid(InjectionScaleConfig):
+    sft_postmid_active: bool = field(default=True, metadata={"label": "SFT Post-Mid"})    
+@dataclass
 class RenderConfig:
     randomize_seed: bool = field(default=True, metadata={"label": "Randomize Seed"})
     seed: int = field(
@@ -123,7 +110,7 @@ class RenderConfig:
     )
     model: ModelSettings = field(default_factory=ModelSettings, metadata={"label": "Model Settings"})
     sampling: SamplingSettings = field(default_factory=SamplingSettings)
-
+    sft_post_mid: SUPIRInjectionSFTPostMid = field(default_factory=SUPIRInjectionSFTPostMid, metadata={"label": "SUPIR SFT Post Mid"})
 
 @dataclass
 class Lighting:
@@ -235,7 +222,7 @@ with gr.Blocks(title="PropertySheet Demos") as demo:
                         height=550,
                         visible=False,
                         root_label="Generator",
-                        interactive=True
+                        interactive=True                        
                     )
                     environment_sheet = PropertySheet(
                         value=initial_env_config,
@@ -244,7 +231,8 @@ with gr.Blocks(title="PropertySheet Demos") as demo:
                         open=False,
                         visible=False,
                         root_label="General",
-                        interactive=True
+                        interactive=True,
+                        root_properties_first=False
                     )
 
             def change_visibility(is_visible, render_cfg, env_cfg):
@@ -549,6 +537,19 @@ bool
 </td>
 <td align="left"><code>True</code></td>
 <td align="left">If True, only the group name is shown when there is a single group.</td>
+</tr>
+
+<tr>
+<td align="left"><code>root_properties_first</code></td>
+<td align="left" style="width: 25%;">
+
+```python
+bool
+```
+
+</td>
+<td align="left"><code>True</code></td>
+<td align="left">If True (default), root-level properties are rendered before nested groups. If False, they are rendered after.</td>
 </tr>
 
 <tr>
