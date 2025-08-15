@@ -158,7 +158,7 @@ class PropertySheet(Component):
                     metadata["name"] = f"{field.name}.{group_field.name}"
                     group_props.append(metadata)
                                 
-                base_group_name = field.name.replace("_", " ").title()
+                base_group_name = field.metadata.get("label", field.name.replace("_", " ").title())
                 unique_group_name = base_group_name
                 counter = 2
                 while unique_group_name in used_group_names:
