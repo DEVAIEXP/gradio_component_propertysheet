@@ -147,7 +147,7 @@ def inject_assets():
 
 
 # --- 4. Gradio App Build ---
-with gr.Blocks(title="PropertySheet Demos") as demo:
+with gr.Blocks(theme=gr.themes.Ocean(), title="PropertySheet Demos") as demo:
     html_injector = HTMLInjector()
     gr.Markdown("# PropertySheet Component Demos")
 

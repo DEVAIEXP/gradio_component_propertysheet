@@ -10,7 +10,7 @@ app_file: space.py
 ---
 
 # `gradio_propertysheet`
-<img alt="Static Badge" src="https://img.shields.io/badge/version%20-%200.0.10%20-%20blue"> <a href="https://huggingface.co/spaces/elismasilva/gradio_propertysheet"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-blue"></a><p><span>💻 <a href='https://github.com/DEVAIEXP/gradio_component_propertysheet'>Component GitHub Code</a></span></p>
+<img alt="Static Badge" src="https://img.shields.io/badge/version%20-%200.0.11%20-%20blue"> <a href="https://huggingface.co/spaces/elismasilva/gradio_propertysheet"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-blue"></a><p><span>💻 <a href='https://github.com/DEVAIEXP/gradio_component_propertysheet'>Component GitHub Code</a></span></p>
 
 The **PropertySheet** component for Gradio allows you to automatically generate a complete and interactive settings panel from a standard Python `dataclass`. It's designed to bring the power of IDE-like property editors directly into your Gradio applications.
 
@@ -38,7 +38,6 @@ The **PropertySheet** component for Gradio allows you to automatically generate 
 - **Dynamic Updates**: Supports advanced patterns where changing one field (e.g., a model selector) can dynamically update the options of another field (e.g., a sampler dropdown).
 
 ## Installation
-
 
 ```bash
 pip install gradio_propertysheet
@@ -196,7 +195,7 @@ def inject_assets():
 
 
 # --- 4. Gradio App Build ---
-with gr.Blocks(title="PropertySheet Demos") as demo:
+with gr.Blocks(theme=gr.themes.Ocean(), title="PropertySheet Demos") as demo:
     html_injector = HTMLInjector()
     gr.Markdown("# PropertySheet Component Demos")
 

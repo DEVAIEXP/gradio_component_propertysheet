@@ -470,6 +470,7 @@
         display: flex;
         flex-direction: column;
         flex-grow: 1;
+        padding: var(--spacing-lg) !important;
     }
     .accordion-header {    
         display: flex;
@@ -488,7 +489,7 @@
     }
     .content-wrapper {
         flex-grow: 1;
-        min-height: 0;
+        min-height: 0;        
     }
     .container {
         overflow-y: auto;
@@ -499,7 +500,7 @@
         border-top: var(--show-group-name);
         border-bottom-left-radius: var(--radius-lg);
         border-bottom-right-radius: var(--radius-lg);
-        background-color: var(--background-fill-secondary);
+        background-color: var(--background-fill-secondary);        
     }
     .closed {
         display: none;

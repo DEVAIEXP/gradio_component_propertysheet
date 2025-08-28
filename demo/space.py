@@ -9,7 +9,7 @@ abs_path = os.path.join(os.path.dirname(__file__), "css.css")
 
 with gr.Blocks(
     css=abs_path,
-    theme=gr.themes.Default(
+    theme=gr.themes.Ocean(
         font_mono=[
             gr.themes.GoogleFont("Inconsolata"),
             "monospace",
@@ -187,7 +187,7 @@ def inject_assets():
 
 
 # --- 4. Gradio App Build ---
-with gr.Blocks(title="PropertySheet Demos") as demo:
+with gr.Blocks(theme=gr.themes.Ocean(), title="PropertySheet Demos") as demo:
     html_injector = HTMLInjector()
     gr.Markdown("# PropertySheet Component Demos")
 
