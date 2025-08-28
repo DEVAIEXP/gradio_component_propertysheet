@@ -1,10 +1,8 @@
-from ast import List
 from dataclasses import fields, is_dataclass
 import dataclasses
-from gradio_client.documentation import document
-from typing import Any, Dict, Literal, Type, get_args, get_origin, get_type_hints
+from typing import Any, Dict, List, Literal, Type, get_args, get_origin, get_type_hints
 
-@document()
+
 def extract_prop_metadata(cls: Type, field: dataclasses.Field) -> Dict[str, Any]:
     """
     Inspects a dataclass field and extracts metadata for UI rendering.
@@ -50,17 +48,17 @@ def extract_prop_metadata(cls: Type, field: dataclasses.Field) -> Dict[str, Any]
     
     return metadata
 
-@document()
-def build_path_to_metadata_key_map(dc_type: Type, prefix_list: List[str]) -> Dict[str, str]:
+
+def build_path_to_metadata_key_map(cls: Type, prefix_list: List[str]) -> Dict[str, str]:
     """
     Builds a map from a dataclass field path (e.g., 'image_settings.model') to the
     expected key in the metadata dictionary (e.g., 'Image Settings - Model').
     """
     path_map = {}
-    if not is_dataclass(dc_type):
+    if not is_dataclass(cls):
         return {}
 
-    for f in fields(dc_type):
+    for f in fields(cls):
         current_path = f.name
         
         if is_dataclass(f.type):
@@ -77,7 +75,7 @@ def build_path_to_metadata_key_map(dc_type: Type, prefix_list: List[str]) -> Dic
             
     return path_map
 
-@document()
+
 def build_dataclass_fields(cls: Type, prefix: str = "") -> Dict[str, str]:
     """
     Recursively builds a mapping of field labels to field paths for a dataclass.
@@ -112,7 +110,7 @@ def build_dataclass_fields(cls: Type, prefix: str = "") -> Dict[str, str]:
     
     return dataclass_fields
 
-@document()
+
 def create_dataclass_instance(cls: Type, data: Dict[str, Any]) -> Any:
     """
     Recursively creates an instance of a dataclass from a nested dictionary.
@@ -148,7 +146,7 @@ def create_dataclass_instance(cls: Type, data: Dict[str, Any]) -> Any:
     
     return cls(**kwargs)
 
-@document()
+
 def flatten_dataclass_with_labels(instance: Any, prefix_labels: List[str] = []) -> Dict[str, Any]:
     """
     Recursively flattens a dataclass instance, creating a dictionary
