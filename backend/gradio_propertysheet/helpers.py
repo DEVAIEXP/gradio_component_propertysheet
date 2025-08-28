@@ -1,3 +1,4 @@
+from ast import List
 from dataclasses import fields, is_dataclass
 import dataclasses
 from gradio_client.documentation import document
@@ -49,6 +50,32 @@ def extract_prop_metadata(cls: Type, field: dataclasses.Field) -> Dict[str, Any]
     
     return metadata
 
+@document()
+def build_path_to_metadata_key_map(dc_type: Type, prefix_list: List[str]) -> Dict[str, str]:
+    """
+    Builds a map from a dataclass field path (e.g., 'image_settings.model') to the
+    expected key in the metadata dictionary (e.g., 'Image Settings - Model').
+    """
+    path_map = {}
+    if not is_dataclass(dc_type):
+        return {}
+
+    for f in fields(dc_type):
+        current_path = f.name
+        
+        if is_dataclass(f.type):
+            parent_label = f.metadata.get("label", f.name.replace("_", " ").title())
+            new_prefix_list = prefix_list + [parent_label]
+            nested_map = build_path_to_metadata_key_map(f.type, new_prefix_list)
+            for nested_path, metadata_key in nested_map.items():
+                path_map[f"{current_path}.{nested_path}"] = metadata_key
+        else:
+            label = f.metadata.get("label", f.name.replace("_", " ").title())
+            full_prefix = " - ".join(prefix_list)
+            metadata_key = f"{full_prefix} - {label}" if full_prefix else label
+            path_map[current_path] = metadata_key
+            
+    return path_map
 
 @document()
 def build_dataclass_fields(cls: Type, prefix: str = "") -> Dict[str, str]:
@@ -120,3 +147,28 @@ def create_dataclass_instance(cls: Type, data: Dict[str, Any]) -> Any:
                 kwargs[field_name] = field.default
     
     return cls(**kwargs)
+
+@document()
+def flatten_dataclass_with_labels(instance: Any, prefix_labels: List[str] = []) -> Dict[str, Any]:
+    """
+    Recursively flattens a dataclass instance, creating a dictionary
+    where the key is a hierarchical, dash-separated label string.
+    """
+    flat_map = {}
+    if not is_dataclass(instance):
+        return {}
+
+    for f in fields(instance):
+        value = getattr(instance, f.name)
+        
+        if is_dataclass(value):
+            group_label = f.metadata.get("label", f.name.replace("_", " ").title())
+            new_prefix_list = prefix_labels + [group_label]
+            flat_map.update(flatten_dataclass_with_labels(value, new_prefix_list))
+        else:
+            field_label = f.metadata.get("label", f.name.replace("_", " ").title())
+            all_labels = prefix_labels + [field_label]
+            hierarchical_key = " - ".join(all_labels)
+            flat_map[hierarchical_key] = value
+            
+    return flat_map
