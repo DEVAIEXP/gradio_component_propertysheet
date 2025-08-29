@@ -9,7 +9,7 @@ abs_path = os.path.join(os.path.dirname(__file__), "css.css")
 
 with gr.Blocks(
     css=abs_path,
-    theme=gr.themes.Ocean(
+    theme=gr.themes.Default(
         font_mono=[
             gr.themes.GoogleFont("Inconsolata"),
             "monospace",

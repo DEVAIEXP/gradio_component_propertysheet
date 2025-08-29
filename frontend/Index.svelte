@@ -535,7 +535,7 @@
     .prop-label {
         background-color: var(--background-fill-primary);
         color: var(--body-text-color);
-        opacity: 0.7;
+        opacity: 3.7;
         font-weight: var(--font-weight-semibold);
         font-size: var(--text-xs);
         text-align: right;
@@ -737,16 +737,16 @@
         border-radius: var(--radius-md);
         padding: var(--spacing-md);
         position: absolute;
-        z-index: 10;
-        bottom: 125%;
-        left: 50%;
+        z-index: 50;
+        bottom: -50%;
+        left: 50%;        
         transform: translateX(-50%);
         opacity: 0;
         transition: opacity 0.3s;
     }
     .tooltip-container:hover .tooltip-text {
         visibility: visible;
-        opacity: 1;
+        opacity: 1.0;
     }
 	.color-picker-container {
 		display: flex;
