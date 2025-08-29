@@ -319,9 +319,28 @@
                                 {#if Array.isArray(group.properties)}
                                     {#each group.properties as prop (prop.name)}
                                         <!-- Conditional interactivity based on another property's value -->
-                                        {@const is_interactive = interactive && (prop.interactive_if 
-                                            ? get_prop_value(prop.interactive_if.field) === prop.interactive_if.value 
-                                            : true)}
+                                        {@const condition = prop.interactive_if}
+                                        {@const parent_value = condition ? get_prop_value(condition.field) : null}
+
+                                        {@const is_interactive = interactive && (
+                                            !condition ? 
+                                                true // No condition, so it's interactive by default.
+                                            :
+                                            condition.value !== undefined ?
+                                                // Case 1: `value` key exists (equality check)
+                                                Array.isArray(condition.value) ?
+                                                    // If `value` is an array, check if parent_value is IN the array.
+                                                    condition.value.includes(parent_value)
+                                                :
+                                                    // If `value` is a single item, do a strict equality check.
+                                                    parent_value === condition.value
+                                            :
+                                            condition.neq !== undefined ?
+                                                // Case 2: `neq` key exists (inequality check)
+                                                parent_value !== condition.neq
+                                            :
+                                                true // Fallback if `interactive_if` is malformed.
+                                        )}
 
                                         <label class="prop-label" for={prop.name}>
                                             <div class="prop-label-wrapper">

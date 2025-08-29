@@ -13,8 +13,7 @@ class APISettings:
     api_key: str = field(
         default="ab123cd45ef67890ghij123klmno456p",
         metadata={
-            "label": "API Key",
-            # A única coisa que você precisa fazer é isso:
+            "label": "API Key",            
             "component": "password", 
             "help": "Your secret API key. It will not be displayed."
         }
@@ -27,7 +26,37 @@ class APISettings:
             "help": "The URL of the API server."
         }
     )
-    
+
+@dataclass
+class QuantizationSettings:
+    quantization_method: Literal["None", "Quanto Library", "Layerwise & Bnb"] = field(
+        default="Layerwise & Bnb",
+        metadata={
+            "component": "radio",
+            "label": "Quantization Method",
+            "help": "Quantization mechanism to save VRAM and increase speed."
+        }
+    )
+    # Option 1: Literal values
+    quantize_mode_list: Literal["FP8", "INT8", "IN4"] = field(
+        default="FP8",
+        metadata={
+            "interactive_if": {"field": "quantization_method", "value": ["Quanto Library", "Layerwise & Bnb"]},
+            "component": "radio",
+            "label": "Quantization Mode (List)",
+            "help": "This becomes interactive if Quantization Method is 'Quanto' OR 'Layerwise'."
+        }
+    )
+    # Option 2: neq operand
+    quantize_mode_neq: Literal["FP8", "INT8", "IN4"] = field(
+        default="FP8",
+        metadata={
+            "interactive_if": {"field": "quantization_method", "neq": "None"},
+            "component": "radio",
+            "label": "Quantization Mode (Not Equal)",
+            "help": "This becomes interactive if Quantization Method is NOT 'None'."
+        }
+    )
 @dataclass
 class ModelSettings:
     model_type: Literal["SD 1.5", "SDXL", "Pony", "Custom"] = field(
@@ -153,6 +182,10 @@ class RenderConfig:
     sampling: SamplingSettings = field(
         default_factory=SamplingSettings,
         metadata={"label": "Sampling Settings"}
+    )
+    quantization: QuantizationSettings = field(
+        default_factory=QuantizationSettings,
+        metadata={"label": "Quantization Settings"}
     )
 
 @dataclass
