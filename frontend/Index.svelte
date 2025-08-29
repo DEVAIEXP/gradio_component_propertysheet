@@ -346,6 +346,14 @@
                                                     on:change={() => dispatch_update("change", prop)} 
                                                     on:input={() => dispatch_update("input", prop)} 
                                                 />
+                                            {:else if prop.component === 'password'}
+                                                <input 
+                                                    type="password" 
+                                                    bind:value={prop.value} 
+                                                    disabled={!is_interactive} 
+                                                    on:change={() => dispatch_update("change", prop)} 
+                                                    on:input={() => dispatch_update("input", prop)} 
+                                                />
                                             {:else if prop.component === 'checkbox'}                                                
                                                 <input                                                         
                                                     type="checkbox" 
@@ -532,6 +540,7 @@
         align-items: center;
         border-bottom: 1px solid var(--background-fill-secondary);
     }
+  
     .prop-label {
         background-color: var(--background-fill-primary);
         color: var(--body-text-color);
@@ -549,6 +558,7 @@
         border-bottom: none;
     }
     .prop-control input[type="text"],
+    .prop-control input[type="password"],
     .prop-control input[type="number"] {
         background-color: var(--input-background-fill);
         border: var(--input-border-width) solid var(--border-color-primary);

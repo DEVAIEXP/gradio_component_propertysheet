@@ -9,6 +9,26 @@ from gradio_htmlinjector import HTMLInjector
 
 # --- 1. Dataclass Definitions (unchanged) ---
 @dataclass
+class APISettings:
+    api_key: str = field(
+        default="ab123cd45ef67890ghij123klmno456p",
+        metadata={
+            "label": "API Key",
+            # A única coisa que você precisa fazer é isso:
+            "component": "password", 
+            "help": "Your secret API key. It will not be displayed."
+        }
+    )
+    endpoint_url: str = field(
+        default="https://api.example.com",
+        metadata={
+            "label": "API Endpoint",
+            "component": "string", # string normal
+            "help": "The URL of the API server."
+        }
+    )
+    
+@dataclass
 class ModelSettings:
     model_type: Literal["SD 1.5", "SDXL", "Pony", "Custom"] = field(
         default="SDXL",
@@ -107,6 +127,10 @@ class SamplingSettings:
 
 @dataclass
 class RenderConfig:
+    api_settings: APISettings = field(
+        default_factory=APISettings,
+        metadata={"label": "API Settings"}
+    )
     randomize_seed: bool = field(
         default=True,
         metadata={
