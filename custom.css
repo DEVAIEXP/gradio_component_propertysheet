@@ -16,6 +16,9 @@
     background: var(--panel-background-fill, white);
     padding: var(--spacing-lg) !important;
 }
+.flyout-sheet .propertysheet-wrapper .content-wrapper .container {
+    overflow: visible !important;
+}
 
 .fake-input-container {
     border: var(--input-border-width) solid var(--border-color-primary);

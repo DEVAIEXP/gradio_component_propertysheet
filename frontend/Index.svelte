@@ -768,7 +768,7 @@
         position: absolute;
         z-index: 50;
         bottom: -50%;
-        left: 50%;        
+        left: 100%;        
         transform: translateX(-50%);
         opacity: 0;
         transition: opacity 0.3s;
