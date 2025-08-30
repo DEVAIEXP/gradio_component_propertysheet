@@ -9,7 +9,7 @@ abs_path = os.path.join(os.path.dirname(__file__), "css.css")
 
 with gr.Blocks(
     css=abs_path,
-    theme=gr.themes.Default(
+    theme=gr.themes.Ocean(
         font_mono=[
             gr.themes.GoogleFont("Inconsolata"),
             "monospace",
@@ -49,41 +49,126 @@ from gradio_htmlinjector import HTMLInjector
 
 # --- 1. Dataclass Definitions (unchanged) ---
 @dataclass
+class APISettings:
+    api_key: str = field(
+        default="ab123cd45ef67890ghij123klmno456p",
+        metadata={
+            "label": "API Key",            
+            "component": "password", 
+            "help": "Your secret API key. It will not be displayed."
+        }
+    )
+    endpoint_url: str = field(
+        default="https://api.example.com",
+        metadata={
+            "label": "API Endpoint",
+            "component": "string", # string normal
+            "help": "The URL of the API server."
+        }
+    )
+
+@dataclass
+class QuantizationSettings:
+    quantization_method: Literal["None", "Quanto Library", "Layerwise & Bnb"] = field(
+        default="Layerwise & Bnb",
+        metadata={
+            "component": "radio",
+            "label": "Quantization Method",
+            "help": "Quantization mechanism to save VRAM and increase speed."
+        }
+    )
+    # Option 1: Literal values
+    quantize_mode_list: Literal["FP8", "INT8", "IN4"] = field(
+        default="FP8",
+        metadata={
+            "interactive_if": {"field": "quantization_method", "value": ["Quanto Library", "Layerwise & Bnb"]},
+            "component": "radio",
+            "label": "Quantization Mode (List)",
+            "help": "This becomes interactive if Quantization Method is 'Quanto' OR 'Layerwise'."
+        }
+    )
+    # Option 2: neq operand
+    quantize_mode_neq: Literal["FP8", "INT8", "IN4"] = field(
+        default="FP8",
+        metadata={
+            "interactive_if": {"field": "quantization_method", "neq": "None"},
+            "component": "radio",
+            "label": "Quantization Mode (Not Equal)",
+            "help": "This becomes interactive if Quantization Method is NOT 'None'."
+        }
+    )
+@dataclass
 class ModelSettings:
     model_type: Literal["SD 1.5", "SDXL", "Pony", "Custom"] = field(
-        default="SDXL", metadata={"component": "dropdown", "label": "Base Model"}
+        default="SDXL",
+        metadata={
+            "component": "dropdown",
+            "label": "Base Model",
+            "help": "Select the base diffusion model."
+        }
     )
     custom_model_path: str = field(
         default="/path/to/default.safetensors",
         metadata={
             "label": "Custom Model Path",
             "interactive_if": {"field": "model_type", "value": "Custom"},
+            "help": "Provide the local file path to your custom .safetensors or .ckpt model file. This is only active when 'Base Model' is set to 'Custom'."
         },
     )
-    vae_path: str = field(default="", metadata={"label": "VAE Path (optional)"})
-
+    vae_path: str = field(
+        default="",
+        metadata={
+            "label": "VAE Path (optional)",
+            "help": "Optionally, provide a path to a separate VAE file to improve color and detail."
+        }
+    )
 
 @dataclass
 class SamplingSettings:
     scheduler: Literal["Karras", "Simple", "Exponential"] = field(
         default="Karras",
-        metadata={"component": "radio", "label": "Scheduler"}
+        metadata={
+            "component": "radio",
+            "label": "Scheduler",
+            "help": "Determines how the noise schedule is interpreted during sampling. 'Karras' is often recommended for high-quality results."
+        }
     )
     sampler_name: Literal["Euler", "Euler a", "DPM++ 2M Karras", "UniPC"] = field(
         default="DPM++ 2M Karras",
-        metadata={"component": "dropdown", "label": "Sampler"},
+        metadata={
+            "component": "dropdown",
+            "label": "Sampler",
+            "help": "The algorithm used to denoise the image over multiple steps. Different samplers can produce stylistically different results."
+        }
     )
     steps: int = field(
         default=25,
-        metadata={"component": "slider", "minimum": 1, "maximum": 150, "step": 1},
+        metadata={
+            "component": "slider",
+            "label": "Sampling Steps",
+            "minimum": 1,
+            "maximum": 150,
+            "step": 1,
+            "help": "The number of denoising steps. More steps can increase detail but also take longer. Values between 20-40 are common."
+        }
     )
     cfg_scale: float = field(
         default=7.0,
-        metadata={"component": "slider", "minimum": 1.0, "maximum": 30.0, "step": 0.5},
+        metadata={
+            "component": "slider",
+            "label": "CFG Scale",
+            "minimum": 1.0,
+            "maximum": 30.0,
+            "step": 0.5,
+            "help": "Classifier-Free Guidance Scale. Higher values make the image adhere more strictly to the prompt, while lower values allow for more creativity."
+        }
     )
     enable_advanced: bool = field(
         default=False,
-        metadata={"label": "Enable Advanced Settings"}
+        metadata={
+            "label": "Enable Advanced Settings",
+            "help": "Check this box to reveal more experimental or fine-tuning options."
+        }
     )
     advanced_option: float = field(
         default=0.5,
@@ -94,6 +179,7 @@ class SamplingSettings:
             "maximum": 1.0,
             "step": 0.01,
             "interactive_if": {"field": "enable_advanced", "value": True},
+            "help": "An example of an advanced setting that is only visible when the corresponding checkbox is enabled."
         },
     )
     temperature: float = field(
@@ -103,53 +189,105 @@ class SamplingSettings:
             "component": "number_float",
             "minimum": 0.1,
             "maximum": 2.0,
-            "step": 0.1
+            "step": 0.1,
+            "help": "Controls the randomness of the sampling process. A value of 1.0 is standard. Higher values increase diversity at the risk of artifacts."
         }
     )
 
 @dataclass
 class RenderConfig:
-    randomize_seed: bool = field(default=True, metadata={"label": "Randomize Seed"})
+    api_settings: APISettings = field(
+        default_factory=APISettings,
+        metadata={"label": "API Settings"}
+    )
+    randomize_seed: bool = field(
+        default=True,
+        metadata={
+            "label": "Randomize Seed",
+            "help": "If checked, a new random seed will be used for each generation. Uncheck to use the specific seed value below."
+        }
+    )
     seed: int = field(
         default=-1,
-        metadata={"component": "number_integer", "label": "Seed (-1 for random)"},
+        metadata={
+            "component": "number_integer",
+            "label": "Seed",
+            "help": "The seed for the random number generator. A value of -1 means a random seed will be chosen. The same seed and settings will produce the same image."
+        }
     )
-    model: ModelSettings = field(default_factory=ModelSettings, metadata={"label": "Model Settings"})
-    sampling: SamplingSettings = field(default_factory=SamplingSettings)
+    model: ModelSettings = field(
+        default_factory=ModelSettings,
+        metadata={"label": "Model Settings"}
+    )
+    sampling: SamplingSettings = field(
+        default_factory=SamplingSettings,
+        metadata={"label": "Sampling Settings"}
+    )
+    quantization: QuantizationSettings = field(
+        default_factory=QuantizationSettings,
+        metadata={"label": "Quantization Settings"}
+    )
 
 @dataclass
 class Lighting:
     sun_intensity: float = field(
         default=1.0,
-        metadata={"component": "slider", "minimum": 0, "maximum": 5, "step": 0.1},
+        metadata={
+            "component": "slider",
+            "label": "Sun Intensity",
+            "minimum": 0,
+            "maximum": 5,
+            "step": 0.1,
+            "help": "Controls the brightness of the main light source in the scene."
+        }
     )
     color: str = field(
-        default="#FFDDBB", metadata={"component": "colorpicker", "label": "Sun Color"}
+        default="#FFDDBB",
+        metadata={
+            "component": "colorpicker",
+            "label": "Sun Color",
+            "help": "Sets the color of the main light source."
+        }
     )
-
 
 @dataclass
 class EnvironmentConfig:
     background: Literal["Sky", "Color", "Image"] = field(
-        default="Sky", metadata={"component": "dropdown"}
+        default="Sky",
+        metadata={
+            "component": "dropdown",
+            "label": "Background Type",
+            "help": "Choose the type of background for the environment."
+        }
     )
-    lighting: Lighting = field(default_factory=Lighting)
-
+    lighting: Lighting = field(
+        default_factory=Lighting,
+        metadata={"label": "Lighting"}
+    )
 
 @dataclass
 class EulerSettings:
     s_churn: float = field(
         default=0.0,
-        metadata={"component": "slider", "minimum": 0.0, "maximum": 1.0, "step": 0.01},
+        metadata={
+            "component": "slider",
+            "label": "S_Churn",
+            "minimum": 0.0,
+            "maximum": 1.0,
+            "step": 0.01,
+            "help": "Stochasticity churn factor for Euler samplers. Adds extra noise at each step, affecting diversity. 0.0 is deterministic."
+        }
     )
-
 
 @dataclass
 class DPM_Settings:
     karras_style: bool = field(
-        default=True, metadata={"label": "Use Karras Sigma Schedule"}
+        default=True,
+        metadata={
+            "label": "Use Karras Sigma Schedule",
+            "help": "If checked, uses the Karras noise schedule, which is often recommended for DPM++ samplers to improve image quality, especially in later steps."
+        }
     )
-
 
 # --- 2. Data Mappings and Initial Instances (unchanged) ---
 initial_render_config = RenderConfig()
