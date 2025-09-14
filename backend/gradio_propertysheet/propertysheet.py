@@ -4,7 +4,7 @@ import json
 from typing import Any, Dict, List, get_type_hints
 import dataclasses
 from gradio.components.base import Component
-from gradio_propertysheet.helpers import extract_prop_metadata
+from gradio_propertysheet.helpers import extract_prop_metadata, infer_type
 from gradio_client.documentation import document
 from gradio.events import Events, EventListener
 
@@ -234,7 +234,7 @@ class PropertySheet(Component):
                     if '.' not in full_key and group_name_key is not None:
                         full_key = f"{group_name_key}.{prop['name']}"
                     
-                    value_map[full_key] = prop["value"]
+                    value_map[full_key] = infer_type(prop["value"])
         
         elif isinstance(payload, dict):
             value_map = payload

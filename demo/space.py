@@ -227,6 +227,14 @@ class RenderConfig:
         default_factory=QuantizationSettings,
         metadata={"label": "Quantization Settings"}
     )
+    tile_size: Literal[1024, 1280] = field(
+        default=1280, 
+        metadata={
+            "component": "dropdown", 
+            "label": "Tile Size", 
+            "help": "The size (in pixels) of the square tiles to use when latent tiling is enabled."
+        }
+    )
 
 @dataclass
 class Lighting:

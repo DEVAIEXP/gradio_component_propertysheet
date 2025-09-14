@@ -3,6 +3,51 @@ import dataclasses
 from typing import Any, Dict, List, Literal, Type, get_args, get_origin, get_type_hints
 
 
+def infer_type(s: str):
+    """
+    Infers and converts a string to the most likely data type.
+
+    It attempts conversions in the following order:
+    1. Integer
+    2. Float
+    3. Boolean (case-insensitive 'true' or 'false')
+    If all conversions fail, it returns the original string.
+
+    Args:
+        s: The input string to be converted.
+
+    Returns:
+        The converted value (int, float, bool) or the original string.
+    """
+    if not isinstance(s, str):
+        # If the input is not a string, return it as is.
+        return s
+
+    # 1. Try to convert to an integer
+    try:
+        return int(s)
+    except ValueError:
+        # Not an integer, continue...
+        pass
+
+    # 2. Try to convert to a float
+    try:
+        return float(s)
+    except ValueError:
+        # Not a float, continue...
+        pass
+    
+    # 3. Check for a boolean value
+    # This explicit check is important because bool('False') evaluates to True.
+    s_lower = s.lower()
+    if s_lower == 'true':
+        return True
+    if s_lower == 'false':
+        return False
+        
+    # 4. If nothing else worked, return the original string
+    return s
+
 def extract_prop_metadata(cls: Type, field: dataclasses.Field) -> Dict[str, Any]:
     """
     Inspects a dataclass field and extracts metadata for UI rendering.
