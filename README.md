@@ -10,7 +10,7 @@ app_file: space.py
 ---
 
 # `gradio_propertysheet`
-<img alt="Static Badge" src="https://img.shields.io/badge/version%20-%200.0.14%20-%20blue"> <a href="https://huggingface.co/spaces/elismasilva/gradio_propertysheet"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-blue"></a><p><span>💻 <a href='https://github.com/DEVAIEXP/gradio_component_propertysheet'>Component GitHub Code</a></span></p>
+<img alt="Static Badge" src="https://img.shields.io/badge/version%20-%200.0.15%20-%20blue"> <a href="https://huggingface.co/spaces/elismasilva/gradio_propertysheet"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-blue"></a><p><span>💻 <a href='https://github.com/DEVAIEXP/gradio_component_propertysheet'>Component GitHub Code</a></span></p>
 
 The **PropertySheet** component for Gradio allows you to automatically generate a complete and interactive settings panel from a standard Python `dataclass`. It's designed to bring the power of IDE-like property editors directly into your Gradio applications.
 
@@ -36,7 +36,6 @@ The **PropertySheet** component for Gradio allows you to automatically generate 
 - **Accordion Layout**: The entire component can act as a main collapsible accordion panel using the `open` parameter.
 - **Theme-Aware**: Designed to look and feel native in all Gradio themes.
 - **Dynamic Updates**: Supports advanced patterns where changing one field (e.g., a model selector) can dynamically update the options of another field (e.g., a sampler dropdown).
-
 
 ## Installation
 

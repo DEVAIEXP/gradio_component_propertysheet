@@ -64,7 +64,8 @@ class ModelSettings:
         metadata={
             "component": "dropdown",
             "label": "Base Model",
-            "help": "Select the base diffusion model."
+            "help": "Select the base diffusion model.",
+            "visible": True #change here to test visibility
         }
     )
     custom_model_path: str = field(
