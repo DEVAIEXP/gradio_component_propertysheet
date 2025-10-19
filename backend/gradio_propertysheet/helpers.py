@@ -57,7 +57,7 @@ def extract_prop_metadata(cls: Type, field: dataclasses.Field) -> Dict[str, Any]
     
     Args:
         cls: The dataclass instance containing the field.
-        field: The dataclasses.Field object to inspect.
+        field: The dataclasses.Field object to inspect.        
     Returns:
         A dictionary of metadata for the frontend to render a property control.
     """

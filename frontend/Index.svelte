@@ -100,15 +100,22 @@
     }
 
     /**
-     * Reactive block that triggers whenever the `value` prop changes from the backend.
-     * It initializes group visibility, validates properties, and updates slider visuals.
+     * Reactive block that triggers whenever the `value` prop changes from the backend
+     * OR from a user interaction within the component (like a checkbox toggle).
+     * It initializes group visibility, validates properties, and critically,
+     * re-updates slider visuals after the DOM has been updated.
      */
-    $: if (Array.isArray(value) && JSON.stringify(value) !== lastValue) {
-        lastValue = JSON.stringify(value);
-        for (const group of value) {
-            if (groupVisibility[group.group_name] === undefined) {
-                groupVisibility[group.group_name] = true;
+    $: if (Array.isArray(value)) {
+        if (JSON.stringify(value) !== lastValue) {
+            lastValue = JSON.stringify(value);           
+            for (const group of value) {
+                if (groupVisibility[group.group_name] === undefined) {
+                    groupVisibility[group.group_name] = true;
+                }
             }
+        }
+                
+        for (const group of value) {
             if (Array.isArray(group.properties)) {
                 for (const prop of group.properties) {
                     if (prop.component?.startsWith("number") || prop.component === 'slider') {
@@ -117,9 +124,9 @@
                 }
             }
         }
-        updateAllSliders();
+       
+        tick().then(updateAllSliders);
     }
-    
     /**
      * Updates a slider's track background to visually represent its value as a percentage.
      * It sets the `--slider-progress` CSS custom property.
@@ -159,11 +166,14 @@
      * @param {string} prop_name - The name of the property to find.
      */
     function get_prop_value(prop_name: string) {
-        if (!Array.isArray(value)) return undefined;
+        if (!Array.isArray(value) || !prop_name) return undefined;
+                
         for (const group of value) {
-            if (!Array.isArray(group.properties)) continue;
+            if (!Array.isArray(group.properties)) continue;        
             const found_prop = group.properties.find(p => p.name === prop_name);
-            if (found_prop) return found_prop.value;
+            if (found_prop) {
+                return found_prop.value;
+            }
         }
         return undefined;
     }
@@ -320,161 +330,177 @@
                                     {#each group.properties as prop (prop.name)}
                                         {#if prop.visible ?? true}    
                                             <!-- Conditional interactivity based on another property's value -->
-                                            {@const condition = prop.interactive_if}
-                                            {@const parent_value = condition ? get_prop_value(condition.field) : null}
+                                            {@const i_condition = prop.interactive_if}
+                                            {@const v_condition = prop.visible_if}
+                                            
+                                            {@const i_parent_value = i_condition ? get_prop_value(i_condition.field) : null}
+                                            {@const v_parent_value = v_condition ? get_prop_value(v_condition.field) : null}
 
                                             {@const is_interactive = interactive && (
-                                                !condition ? 
-                                                    true // No condition, so it's interactive by default.
+                                                !i_condition ? 
+                                                    true
                                                 :
-                                                condition.value !== undefined ?
-                                                    // Case 1: `value` key exists (equality check)
-                                                    Array.isArray(condition.value) ?
-                                                        // If `value` is an array, check if parent_value is IN the array.
-                                                        condition.value.includes(parent_value)
+                                                i_condition.value !== undefined ?
+                                                    Array.isArray(i_condition.value) ?
+                                                        i_condition.value.includes(i_parent_value)
                                                     :
-                                                        // If `value` is a single item, do a strict equality check.
-                                                        parent_value === condition.value
+                                                        i_parent_value === i_condition.value
                                                 :
-                                                condition.neq !== undefined ?
-                                                    // Case 2: `neq` key exists (inequality check)
-                                                    parent_value !== condition.neq
+                                                i_condition.neq !== undefined ?
+                                                    i_parent_value !== i_condition.neq
                                                 :
-                                                    true // Fallback if `interactive_if` is malformed.
+                                                    true
                                             )}
-
-                                            <label class="prop-label" for={prop.name}>
-                                                <div class="prop-label-wrapper">
-                                                    <span>{prop.label}</span>
-                                                    <!-- Help tooltip -->
-                                                    {#if prop.help}
-                                                        <div class="tooltip-container">
-                                                            <span class="tooltip-icon">?</span>
-                                                            <span class="tooltip-text">{prop.help}</span>
-                                                        </div>
-                                                    {/if}
-                                                </div>
-                                            </label>
                                             
-                                            <div class="prop-control">
-                                                <!-- Dynamically render the correct input component based on `prop.component` -->
-                                                {#if prop.component === 'string'}
-                                                    <input 
-                                                        type="text" 
-                                                        bind:value={prop.value} 
-                                                        disabled={!is_interactive} 
-                                                        on:change={() => dispatch_update("change", prop)} 
-                                                        on:input={() => dispatch_update("input", prop)} 
-                                                    />
-                                                {:else if prop.component === 'password'}
-                                                    <input 
-                                                        type="password" 
-                                                        bind:value={prop.value} 
-                                                        disabled={!is_interactive} 
-                                                        on:change={() => dispatch_update("change", prop)} 
-                                                        on:input={() => dispatch_update("input", prop)} 
-                                                    />
-                                                {:else if prop.component === 'checkbox'}                                                
-                                                    <input                                                         
-                                                        type="checkbox" 
-                                                        bind:checked={prop.value} 
-                                                        disabled={!is_interactive} 
-                                                        on:change={() => dispatch_update("change", prop)} 
-                                                    />                                            
-                                                {:else if prop.component === 'number_integer' || prop.component === 'number_float'}
-                                                    <input 
-                                                        class:invalid={validationState[prop.name] === false}
-                                                        class:disabled={!is_interactive}
-                                                        type="number" 
-                                                        step={prop.step || 1} 
-                                                        bind:value={prop.value} 
-                                                        disabled={!is_interactive} 
-                                                        on:change={() => dispatch_update("change", prop)} 
-                                                        on:input={() => {
-                                                            validate_prop(prop);
-                                                            dispatch_update("input", prop);
-                                                        }}
-                                                    />
-                                                {:else if prop.component === 'slider'}
-                                                    <div class="slider-container" class:disabled={!is_interactive}>
-                                                        <input 
-                                                            type="range" 
-                                                            min={prop.minimum} 
-                                                            max={prop.maximum} 
-                                                            step={prop.step || 1} 
-                                                            bind:value={prop.value} 
-                                                            bind:this={sliderElements[prop.name]}
-                                                            disabled={!is_interactive} 
-                                                            on:input={() => {
-                                                                validate_prop(prop);
-                                                                updateSliderBackground(prop, sliderElements[prop.name]);
-                                                                dispatch_update("input", prop);
-                                                            }} 
-                                                            on:change={() => dispatch_update("change", prop)} 
-                                                        />
-                                                        <span class="slider-value">{prop.value}</span>
-                                                    </div>										
-                                                {:else if prop.component === 'colorpicker'}
-                                                    <div class="color-picker-container" class:disabled={!is_interactive}>
-                                                        <input 
-                                                            type="color" 
-                                                            class="color-picker-input"
-                                                            bind:value={prop.value}
-                                                            disabled={!is_interactive}
-                                                            on:change={() => dispatch_update("change", prop)}
-                                                        />
-                                                        <span class="color-picker-value">{prop.value}</span>
-                                                    </div>
-                                                {:else if prop.component === 'dropdown'}
-                                                    <div class="dropdown-wrapper" class:disabled={!is_interactive}>
-                                                        <select 
-                                                            disabled={!is_interactive} 
-                                                            value={prop.value}
-                                                            on:change={(e) => handle_dropdown_change(e, prop)}
-                                                        >
-                                                            {#if Array.isArray(prop.choices)}
-                                                                {#each prop.choices as choice}
-                                                                    <option value={choice} selected={prop.value === choice}>
-                                                                        {choice}
-                                                                    </option>
-                                                                {/each}
-                                                            {/if}
-                                                        </select>
-                                                        <div class="dropdown-arrow-icon"></div>												
-                                                    </div>
-                                                {:else if prop.component === 'radio'}
-                                                    <div class="radio-group" class:disabled={!is_interactive} on:change={() => dispatch_update('change', prop)}>
-                                                        {#if Array.isArray(prop.choices)}
-                                                            {#each prop.choices as choice}
-                                                                <div class="radio-item">
-                                                                    <input 
-                                                                        type="radio" 
-                                                                        id="{prop.name}-{choice}" 
-                                                                        name={prop.name}
-                                                                        value={choice}
-                                                                        bind:group={prop.value}
-                                                                        disabled={!is_interactive}
-                                                                    >
-                                                                    <label for="{prop.name}-{choice}">{choice}</label>
-                                                                </div>
-                                                            {/each}
+                                            {@const is_visible = (prop.visible ?? true) && (
+                                                !v_condition ?
+                                                    true
+                                                :
+                                                v_condition.value !== undefined ?
+                                                    Array.isArray(v_condition.value) ?
+                                                        v_condition.value.includes(v_parent_value)
+                                                    :
+                                                        v_parent_value === v_condition.value
+                                                :
+                                                v_condition.neq !== undefined ?
+                                                    v_parent_value !== v_condition.neq
+                                                :
+                                                    true // Fallback
+                                            )}
+                                            {#if is_visible}
+                                                <label class="prop-label" for={prop.name}>
+                                                    <div class="prop-label-wrapper">
+                                                        <span>{prop.label}</span>
+                                                        <!-- Help tooltip -->
+                                                        {#if prop.help}
+                                                            <div class="tooltip-container">
+                                                                <span class="tooltip-icon">?</span>
+                                                                <span class="tooltip-text">{prop.help}</span>
+                                                            </div>
                                                         {/if}
                                                     </div>
-                                                {/if}
+                                                </label>
+                                                
+                                                <div class="prop-control">
+                                                    <!-- Dynamically render the correct input component based on `prop.component` -->
+                                                    {#if prop.component === 'string'}
+                                                        <input 
+                                                            type="text" 
+                                                            bind:value={prop.value} 
+                                                            disabled={!is_interactive} 
+                                                            on:change={() => dispatch_update("change", prop)} 
+                                                            on:input={() => dispatch_update("input", prop)} 
+                                                        />
+                                                    {:else if prop.component === 'password'}
+                                                        <input 
+                                                            type="password" 
+                                                            bind:value={prop.value} 
+                                                            disabled={!is_interactive} 
+                                                            on:change={() => dispatch_update("change", prop)} 
+                                                            on:input={() => dispatch_update("input", prop)} 
+                                                        />
+                                                    {:else if prop.component === 'checkbox'}                                                
+                                                        <input                                                         
+                                                            type="checkbox" 
+                                                            bind:checked={prop.value} 
+                                                            disabled={!is_interactive} 
+                                                            on:change={() => dispatch_update("change", prop)} 
+                                                        />                                            
+                                                    {:else if prop.component === 'number_integer' || prop.component === 'number_float'}
+                                                        <input 
+                                                            class:invalid={validationState[prop.name] === false}
+                                                            class:disabled={!is_interactive}
+                                                            type="number" 
+                                                            step={prop.step || 1} 
+                                                            bind:value={prop.value} 
+                                                            disabled={!is_interactive} 
+                                                            on:change={() => dispatch_update("change", prop)} 
+                                                            on:input={() => {
+                                                                validate_prop(prop);
+                                                                dispatch_update("input", prop);
+                                                            }}
+                                                        />
+                                                    {:else if prop.component === 'slider'}
+                                                        <div class="slider-container" class:disabled={!is_interactive}>
+                                                            <input 
+                                                                type="range" 
+                                                                min={prop.minimum} 
+                                                                max={prop.maximum} 
+                                                                step={prop.step || 1} 
+                                                                bind:value={prop.value} 
+                                                                bind:this={sliderElements[prop.name]}
+                                                                disabled={!is_interactive} 
+                                                                on:input={() => {
+                                                                    validate_prop(prop);
+                                                                    updateSliderBackground(prop, sliderElements[prop.name]);
+                                                                    dispatch_update("input", prop);
+                                                                }} 
+                                                                on:change={() => dispatch_update("change", prop)} 
+                                                            />
+                                                            <span class="slider-value">{prop.value}</span>
+                                                        </div>										
+                                                    {:else if prop.component === 'colorpicker'}
+                                                        <div class="color-picker-container" class:disabled={!is_interactive}>
+                                                            <input 
+                                                                type="color" 
+                                                                class="color-picker-input"
+                                                                bind:value={prop.value}
+                                                                disabled={!is_interactive}
+                                                                on:change={() => dispatch_update("change", prop)}
+                                                            />
+                                                            <span class="color-picker-value">{prop.value}</span>
+                                                        </div>
+                                                    {:else if prop.component === 'dropdown'}
+                                                        <div class="dropdown-wrapper" class:disabled={!is_interactive}>
+                                                            <select 
+                                                                disabled={!is_interactive} 
+                                                                value={prop.value}
+                                                                on:change={(e) => handle_dropdown_change(e, prop)}
+                                                            >
+                                                                {#if Array.isArray(prop.choices)}
+                                                                    {#each prop.choices as choice}
+                                                                        <option value={choice} selected={prop.value === choice}>
+                                                                            {choice}
+                                                                        </option>
+                                                                    {/each}
+                                                                {/if}
+                                                            </select>
+                                                            <div class="dropdown-arrow-icon"></div>												
+                                                        </div>
+                                                    {:else if prop.component === 'radio'}
+                                                        <div class="radio-group" class:disabled={!is_interactive} on:change={() => dispatch_update('change', prop)}>
+                                                            {#if Array.isArray(prop.choices)}
+                                                                {#each prop.choices as choice}
+                                                                    <div class="radio-item">
+                                                                        <input 
+                                                                            type="radio" 
+                                                                            id="{prop.name}-{choice}" 
+                                                                            name={prop.name}
+                                                                            value={choice}
+                                                                            bind:group={prop.value}
+                                                                            disabled={!is_interactive}
+                                                                        >
+                                                                        <label for="{prop.name}-{choice}">{choice}</label>
+                                                                    </div>
+                                                                {/each}
+                                                            {/if}
+                                                        </div>
+                                                    {/if}
 
-                                                <!-- Reset button, visible only when the current value differs from the initial value -->
-                                                {#if prop.component !== 'checkbox'}
-                                                    <button 
-                                                        class="reset-button-prop" 
-                                                        class:visible={initialValues[prop.name] !== prop.value}
-                                                        title="Reset to default" 
-                                                        on:click|stopPropagation={() => handle_reset_prop(prop.name)}
-                                                        disabled={!is_interactive}
-                                                    >
-                                                        ↺
-                                                    </button>
-                                                {/if}
-                                            </div>
+                                                    <!-- Reset button, visible only when the current value differs from the initial value -->
+                                                    {#if prop.component !== 'checkbox'}
+                                                        <button 
+                                                            class="reset-button-prop" 
+                                                            class:visible={initialValues[prop.name] !== prop.value}
+                                                            title="Reset to default" 
+                                                            on:click|stopPropagation={() => handle_reset_prop(prop.name)}
+                                                            disabled={!is_interactive}
+                                                        >
+                                                            ↺
+                                                        </button>
+                                                    {/if}
+                                                </div>
+                                            {/if}
                                         {/if}
                                     {/each}
                                 {/if}

@@ -1,13 +1,14 @@
 from __future__ import annotations
 import copy
 import json
+import logging
 from typing import Any, Dict, List, get_type_hints
 import dataclasses
 from gradio.components.base import Component
 from gradio_propertysheet.helpers import extract_prop_metadata, infer_type
 from gradio_client.documentation import document
 from gradio.events import Events, EventListener
-
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - [BACKEND] %(message)s')
 def prop_meta(**kwargs) -> dataclasses.Field:
     """
     A helper function to create a dataclass field with Gradio-specific metadata.
@@ -151,13 +152,25 @@ class PropertySheet(Component):
                     reordered_fields = dataclasses.fields(group_type)
                                 
                 for group_field in reordered_fields:
-                    metadata = extract_prop_metadata(group_obj, group_field)                
-                    if "interactive_if" in metadata and "." not in metadata["interactive_if"]["field"]:
-                        relative_field_name = metadata["interactive_if"]["field"]
-                        metadata["interactive_if"]["field"] = f"{field.name}.{relative_field_name}"
+                    original_metadata = group_field.metadata                                        
+                    prop_data = extract_prop_metadata(group_obj, group_field)                    
+                    group_prefix = f"{field.name}."                                        
+                    prop_data["name"] = f"{group_prefix}{group_field.name}"
                     
-                    metadata["name"] = f"{field.name}.{group_field.name}"
-                    group_props.append(metadata)
+                    if "interactive_if" in original_metadata:                    
+                        new_condition = copy.deepcopy(original_metadata["interactive_if"])                                                
+                        if "field" in new_condition:
+                            base_condition_field = new_condition["field"].split('.')[-1]
+                            new_condition["field"] = f"{group_prefix}{base_condition_field}"
+                        prop_data["interactive_if"] = new_condition
+                    
+                    if "visible_if" in original_metadata:
+                        new_condition = copy.deepcopy(original_metadata["visible_if"])
+                        if "field" in new_condition:
+                            base_condition_field = new_condition["field"].split('.')[-1]
+                            new_condition["field"] = f"{group_prefix}{base_condition_field}"
+                        prop_data["visible_if"] = new_condition
+                    group_props.append(prop_data)
                                 
                 base_group_name = field.metadata.get("label", field.name.replace("_", " ").title())
                 unique_group_name = base_group_name
@@ -169,7 +182,8 @@ class PropertySheet(Component):
                 used_group_names.add(unique_group_name)
                 json_schema.append({"group_name": unique_group_name, "properties": group_props})
             else:
-                root_properties.append(extract_prop_metadata(current_value, field))
+                metadata = extract_prop_metadata(current_value, field)                                
+                root_properties.append(metadata)                
         
         # Process root properties, if any exist
         if root_properties:           
@@ -185,8 +199,7 @@ class PropertySheet(Component):
             if self.root_properties_first:
                 json_schema.insert(0, root_group)
             else:
-                json_schema.append(root_group)            
-        
+                json_schema.append(root_group)                    
         return json_schema
     
     @document()

@@ -9,6 +9,45 @@ from gradio_htmlinjector import HTMLInjector
 
 # --- 1. Dataclass Definitions (unchanged) ---
 @dataclass
+class EffectBase:
+    """Classe base com configurações de efeito comuns."""
+    strength: float = field(
+        default=0.5,
+        metadata={
+            "component": "slider",
+            "label": "Effect Strength",
+            "minimum": 0.0,
+            "maximum": 1.0,
+            "step": 0.01,
+            # Esta regra depende do 'is_active' da classe filha
+            "interactive_if": {"field": "is_active", "value": True}
+        }
+    )
+
+@dataclass
+class EffectSettings(EffectBase):
+    """Classe filha que adiciona o controle de ativação."""
+    is_active: bool = field(
+        default=True,
+        metadata={"label": "Enable Effect"}
+    )
+
+@dataclass
+class EffectsConfig:
+    """Dataclass principal que contém múltiplos efeitos com campos de controle de mesmo nome."""
+    blur_effect: EffectSettings = field(
+        default_factory=EffectSettings,
+        metadata={"label": "Blur Effect"}
+    )
+    sharpen_effect: EffectSettings = field(
+        default_factory=EffectSettings,
+        metadata={"label": "Sharpen Effect"}
+    )
+    vignette_effect: EffectSettings = field(
+        default_factory=EffectSettings,
+        metadata={"label": "Vignette Effect"}
+    )
+@dataclass
 class APISettings:
     api_key: str = field(
         default="ab123cd45ef67890ghij123klmno456p",
@@ -139,6 +178,7 @@ class SamplingSettings:
             "minimum": 0.0,
             "maximum": 1.0,
             "step": 0.01,
+            "visible_if": {"field": "enable_advanced", "value": True},
             "interactive_if": {"field": "enable_advanced", "value": True},
             "help": "An example of an advanced setting that is only visible when the corresponding checkbox is enabled."
         },
@@ -151,6 +191,7 @@ class SamplingSettings:
             "minimum": 0.1,
             "maximum": 2.0,
             "step": 0.1,
+            "visible_if": {"field": "enable_advanced", "value": True},
             "help": "Controls the randomness of the sampling process. A value of 1.0 is standard. Higher values increase diversity at the risk of artifacts."
         }
     )
@@ -317,6 +358,8 @@ with gr.Blocks(theme=gr.themes.Ocean(), title="PropertySheet Demos") as demo:
             gr.Markdown(
                 "An example of using the `PropertySheet` component as a traditional sidebar for settings."
             )
+            initial_effects_config = EffectsConfig()
+            effects_state = gr.State(value=initial_effects_config)
             render_state = gr.State(value=initial_render_config)
             env_state = gr.State(value=initial_env_config)
             sidebar_visible = gr.State(False)
@@ -326,6 +369,7 @@ with gr.Blocks(theme=gr.themes.Ocean(), title="PropertySheet Demos") as demo:
                     with gr.Row():
                         output_render_json = gr.JSON(label="Live Render State")
                         output_env_json = gr.JSON(label="Live Environment State")
+                        output_effects_json = gr.JSON(label="Live Effects State")
                 with gr.Column(scale=1):
                     render_sheet = PropertySheet(
                         value=initial_render_config,
@@ -346,14 +390,22 @@ with gr.Blocks(theme=gr.themes.Ocean(), title="PropertySheet Demos") as demo:
                         interactive=True,
                         root_properties_first=False
                     )
+                    effects_sheet = PropertySheet(
+                        value=initial_effects_config,
+                        label="Post-Processing Effects",
+                        width=400,
+                        visible=False,
+                        interactive=True
+                    )
 
-            def change_visibility(is_visible, render_cfg, env_cfg):
+            def change_visibility(is_visible, render_cfg, env_cfg, effects_cfg):
                 new_visibility = not is_visible
                 button_text = "Hide Settings" if new_visibility else "Show Settings"
                 return (
                     new_visibility,
                     gr.update(visible=new_visibility, value=render_cfg),
                     gr.update(visible=new_visibility, value=env_cfg),
+                    gr.update(visible=new_visibility, value=effects_cfg),
                     gr.update(value=button_text),
                 )
 
@@ -374,10 +426,11 @@ with gr.Blocks(theme=gr.themes.Ocean(), title="PropertySheet Demos") as demo:
                 return updated_config, asdict(updated_config), current_state
 
             generate.click(
-                fn=change_visibility,
-                inputs=[sidebar_visible, render_state, env_state],
-                outputs=[sidebar_visible, render_sheet, environment_sheet, generate],
+                fn=change_visibility,             
+                inputs=[sidebar_visible, render_state, env_state, effects_state],                
+                outputs=[sidebar_visible, render_sheet, environment_sheet, effects_sheet, generate],
             )
+          
             render_sheet.change(
                 fn=handle_render_change,
                 inputs=[render_sheet, render_state],
@@ -409,12 +462,26 @@ with gr.Blocks(theme=gr.themes.Ocean(), title="PropertySheet Demos") as demo:
                             inputs=[environment_sheet, env_state],
                             outputs=[environment_sheet, output_env_json, env_state],
             )
+            def handle_effects_change(updated_config: EffectsConfig, current_state: EffectsConfig):
+                if updated_config is None:
+                    return current_state, asdict(current_state), current_state
+                return updated_config, asdict(updated_config), updated_config
             
+            effects_sheet.change(
+                fn=handle_effects_change,
+                inputs=[effects_sheet, effects_state],
+                outputs=[effects_sheet, output_effects_json, effects_state]
+            )
+            effects_sheet.undo(
+                fn=handle_effects_change,
+                inputs=[effects_sheet, effects_state],
+                outputs=[effects_sheet, output_effects_json, effects_state]
+            )
             
             demo.load(
-                fn=lambda r_cfg, e_cfg: (asdict(r_cfg), asdict(e_cfg)),
-                inputs=[render_state, env_state],
-                outputs=[output_render_json, output_env_json],
+                fn=lambda r_cfg, e_cfg, ef_cfg: (asdict(r_cfg), asdict(e_cfg), asdict(ef_cfg)),
+                inputs=[render_state, env_state, effects_state],
+                outputs=[output_render_json, output_env_json, output_effects_json],
             )
 
         with gr.TabItem("Flyout Popup Demo"):
