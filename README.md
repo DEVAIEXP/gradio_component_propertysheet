@@ -10,7 +10,7 @@ app_file: space.py
 ---
 
 # `gradio_propertysheet`
-<img alt="Static Badge" src="https://img.shields.io/badge/version%20-%200.0.16%20-%20blue"> <a href="https://huggingface.co/spaces/elismasilva/gradio_propertysheet"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-blue"></a><p><span>💻 <a href='https://github.com/DEVAIEXP/gradio_component_propertysheet'>Component GitHub Code</a></span></p>
+<img alt="Static Badge" src="https://img.shields.io/badge/version%20-%200.0.17%20-%20blue"> <a href="https://huggingface.co/spaces/elismasilva/gradio_propertysheet"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-blue"></a><p><span>💻 <a href='https://github.com/DEVAIEXP/gradio_component_propertysheet'>Component GitHub Code</a></span></p>
 
 The **PropertySheet** component for Gradio allows you to automatically generate a complete and interactive settings panel from a standard Python `dataclass`. It's designed to bring the power of IDE-like property editors directly into your Gradio applications.
 
@@ -226,6 +226,7 @@ class SamplingSettings:
             "minimum": 0.0,
             "maximum": 1.0,
             "step": 0.01,
+            "visible_if": {"field": "enable_advanced", "value": True},
             "interactive_if": {"field": "enable_advanced", "value": True},
             "help": "An example of an advanced setting that is only visible when the corresponding checkbox is enabled."
         },
@@ -238,6 +239,7 @@ class SamplingSettings:
             "minimum": 0.1,
             "maximum": 2.0,
             "step": 0.1,
+            "visible_if": {"field": "enable_advanced", "value": True},
             "help": "Controls the randomness of the sampling process. A value of 1.0 is standard. Higher values increase diversity at the risk of artifacts."
         }
     )

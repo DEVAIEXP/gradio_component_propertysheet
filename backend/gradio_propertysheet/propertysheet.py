@@ -1,14 +1,12 @@
 from __future__ import annotations
 import copy
-import json
-import logging
 from typing import Any, Dict, List, get_type_hints
 import dataclasses
 from gradio.components.base import Component
 from gradio_propertysheet.helpers import extract_prop_metadata, infer_type
 from gradio_client.documentation import document
 from gradio.events import Events, EventListener
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - [BACKEND] %(message)s')
+
 def prop_meta(**kwargs) -> dataclasses.Field:
     """
     A helper function to create a dataclass field with Gradio-specific metadata.

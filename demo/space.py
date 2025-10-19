@@ -218,6 +218,7 @@ class SamplingSettings:
             "minimum": 0.0,
             "maximum": 1.0,
             "step": 0.01,
+            "visible_if": {"field": "enable_advanced", "value": True},
             "interactive_if": {"field": "enable_advanced", "value": True},
             "help": "An example of an advanced setting that is only visible when the corresponding checkbox is enabled."
         },
@@ -230,6 +231,7 @@ class SamplingSettings:
             "minimum": 0.1,
             "maximum": 2.0,
             "step": 0.1,
+            "visible_if": {"field": "enable_advanced", "value": True},
             "help": "Controls the randomness of the sampling process. A value of 1.0 is standard. Higher values increase diversity at the risk of artifacts."
         }
     )
