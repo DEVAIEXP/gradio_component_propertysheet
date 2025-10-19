@@ -7,10 +7,10 @@ from gradio_propertysheet import PropertySheet
 from gradio_htmlinjector import HTMLInjector
 
 
-# --- 1. Dataclass Definitions (unchanged) ---
+# --- 1. Dataclass Definitions ---
 @dataclass
 class EffectBase:
-    """Classe base com configurações de efeito comuns."""
+    """Base class with common effect settings."""
     strength: float = field(
         default=0.5,
         metadata={
@@ -19,14 +19,14 @@ class EffectBase:
             "minimum": 0.0,
             "maximum": 1.0,
             "step": 0.01,
-            # Esta regra depende do 'is_active' da classe filha
+            # This rule depends on the 'is_active' field from the child class
             "interactive_if": {"field": "is_active", "value": True}
         }
     )
 
 @dataclass
 class EffectSettings(EffectBase):
-    """Classe filha que adiciona o controle de ativação."""
+    """Child class that adds the activation control."""
     is_active: bool = field(
         default=True,
         metadata={"label": "Enable Effect"}
@@ -34,7 +34,7 @@ class EffectSettings(EffectBase):
 
 @dataclass
 class EffectsConfig:
-    """Dataclass principal que contém múltiplos efeitos com campos de controle de mesmo nome."""
+    """Main dataclass containing multiple effects with same-named control fields."""
     blur_effect: EffectSettings = field(
         default_factory=EffectSettings,
         metadata={"label": "Blur Effect"}
@@ -47,6 +47,7 @@ class EffectsConfig:
         default_factory=EffectSettings,
         metadata={"label": "Vignette Effect"}
     )
+
 @dataclass
 class APISettings:
     api_key: str = field(
@@ -61,7 +62,7 @@ class APISettings:
         default="https://api.example.com",
         metadata={
             "label": "API Endpoint",
-            "component": "string", # string normal
+            "component": "string", # Normal string
             "help": "The URL of the API server."
         }
     )
@@ -76,7 +77,6 @@ class QuantizationSettings:
             "help": "Quantization mechanism to save VRAM and increase speed."
         }
     )
-    # Option 1: Literal values
     quantize_mode_list: Literal["FP8", "INT8", "IN4"] = field(
         default="FP8",
         metadata={
@@ -86,7 +86,6 @@ class QuantizationSettings:
             "help": "This becomes interactive if Quantization Method is 'Quanto' OR 'Layerwise'."
         }
     )
-    # Option 2: neq operand
     quantize_mode_neq: Literal["FP8", "INT8", "IN4"] = field(
         default="FP8",
         metadata={
@@ -96,6 +95,7 @@ class QuantizationSettings:
             "help": "This becomes interactive if Quantization Method is NOT 'None'."
         }
     )
+
 @dataclass
 class ModelSettings:
     model_type: Literal["SD 1.5", "SDXL", "Pony", "Custom"] = field(
@@ -104,7 +104,7 @@ class ModelSettings:
             "component": "dropdown",
             "label": "Base Model",
             "help": "Select the base diffusion model.",
-            "visible": True #change here to test visibility
+            "visible": True
         }
     )
     custom_model_path: str = field(
@@ -196,6 +196,30 @@ class SamplingSettings:
         }
     )
 
+
+@dataclass
+class AdvancedSamplingSettings:
+    override_sampler: bool = field(
+        default=False,
+        metadata={
+            "label": "Override Sampler Settings",
+            "help": "Enable this to activate special sampler-specific options below."
+        }
+    )
+    custom_noise: float = field(
+        default=1.0,
+        metadata={
+            "component": "slider",
+            "label": "Custom Noise Multiplier",
+            "minimum": 0.5,
+            "maximum": 1.5,
+            "step": 0.01,
+            "interactive_if": {"field": "override_sampler", "value": True},
+            "help": "A custom setting that is only active when 'Override Sampler Settings' is checked."
+        }
+    )
+
+
 @dataclass
 class RenderConfig:
     api_settings: APISettings = field(
@@ -225,6 +249,12 @@ class RenderConfig:
         default_factory=SamplingSettings,
         metadata={"label": "Sampling Settings"}
     )
+    
+    advanced_sampling: AdvancedSamplingSettings = field(
+        default_factory=AdvancedSamplingSettings,
+        metadata={"label": "Advanced Sampling"}
+    )
+    
     quantization: QuantizationSettings = field(
         default_factory=QuantizationSettings,
         metadata={"label": "Quantization Settings"}
@@ -299,9 +329,11 @@ class DPM_Settings:
         }
     )
 
-# --- 2. Data Mappings and Initial Instances (unchanged) ---
+# --- 2. Data Mappings and Initial Instances ---
 initial_render_config = RenderConfig()
 initial_env_config = EnvironmentConfig()
+initial_effects_config = EffectsConfig()
+
 sampler_settings_map_py = {
     "Euler": EulerSettings(),
     "DPM++ 2M Karras": DPM_Settings(),
@@ -314,8 +346,7 @@ model_settings_map_py = {
     "Pony": None,
 }
 
-
-# --- 3. CSS & JS Injection function (unchanged) ---
+# --- 3. CSS & JS Injection function ---
 def inject_assets():
     """
     This function prepares the payload of CSS, JS, and Body HTML for injection.
@@ -358,14 +389,13 @@ with gr.Blocks(theme=gr.themes.Ocean(), title="PropertySheet Demos") as demo:
             gr.Markdown(
                 "An example of using the `PropertySheet` component as a traditional sidebar for settings."
             )
-            initial_effects_config = EffectsConfig()
             effects_state = gr.State(value=initial_effects_config)
             render_state = gr.State(value=initial_render_config)
             env_state = gr.State(value=initial_env_config)
             sidebar_visible = gr.State(False)
             with gr.Row():
                 with gr.Column(scale=3):
-                    generate = gr.Button("Show Settings", variant="primary")
+                    generate_btn = gr.Button("Show Settings", variant="primary")
                     with gr.Row():
                         output_render_json = gr.JSON(label="Live Render State")
                         output_env_json = gr.JSON(label="Live Environment State")
@@ -424,11 +454,16 @@ with gr.Blocks(theme=gr.themes.Ocean(), title="PropertySheet Demos") as demo:
                 if updated_config is None:
                     return current_state, asdict(current_state), current_state
                 return updated_config, asdict(updated_config), current_state
+            
+            def handle_effects_change(updated_config: EffectsConfig, current_state: EffectsConfig):
+                if updated_config is None:
+                    return current_state, asdict(current_state), current_state
+                return updated_config, asdict(updated_config), updated_config
 
-            generate.click(
+            generate_btn.click(
                 fn=change_visibility,             
                 inputs=[sidebar_visible, render_state, env_state, effects_state],                
-                outputs=[sidebar_visible, render_sheet, environment_sheet, effects_sheet, generate],
+                outputs=[sidebar_visible, render_sheet, environment_sheet, effects_sheet, generate_btn],
             )
           
             render_sheet.change(
@@ -441,41 +476,31 @@ with gr.Blocks(theme=gr.themes.Ocean(), title="PropertySheet Demos") as demo:
                 inputs=[environment_sheet, env_state],
                 outputs=[environment_sheet, output_env_json, env_state],
             )
-            
-            #In version 0.0.7, I moved the undo function to a new `undo` event. This was necessary to avoid conflict with the `change` event where it was previously implemented. 
-            # Now you need to implement the undo event for the undo button to work. You can simply receive the component as input and set it as output.
-            def render_undo(updated_config: RenderConfig, current_state: RenderConfig):
-                if updated_config is None:
-                    return current_state, asdict(current_state), current_state
-                return updated_config, asdict(updated_config), current_state
-            
-            def environment_undo(updated_config: EnvironmentConfig, current_state: EnvironmentConfig):
-                if updated_config is None:
-                    return current_state, asdict(current_state), current_state
-                return updated_config, asdict(updated_config), current_state
-            
-            render_sheet.undo(fn=render_undo, 
-                              inputs=[render_sheet, render_state], 
-                              outputs=[render_sheet, output_render_json, render_state]
-            )
-            environment_sheet.undo(fn=environment_undo, 
-                            inputs=[environment_sheet, env_state],
-                            outputs=[environment_sheet, output_env_json, env_state],
-            )
-            def handle_effects_change(updated_config: EffectsConfig, current_state: EffectsConfig):
-                if updated_config is None:
-                    return current_state, asdict(current_state), current_state
-                return updated_config, asdict(updated_config), updated_config
-            
             effects_sheet.change(
                 fn=handle_effects_change,
                 inputs=[effects_sheet, effects_state],
                 outputs=[effects_sheet, output_effects_json, effects_state]
             )
+            
+            def on_undo(updated_config, current_state):
+                if updated_config is None:
+                    return current_state, asdict(current_state)
+                return updated_config, asdict(updated_config)
+            
+            render_sheet.undo(
+                fn=on_undo, 
+                inputs=[render_sheet, render_state], 
+                outputs=[render_state, output_render_json]
+            )
+            environment_sheet.undo(
+                fn=on_undo, 
+                inputs=[environment_sheet, env_state],
+                outputs=[env_state, output_env_json],
+            )
             effects_sheet.undo(
-                fn=handle_effects_change,
+                fn=on_undo,
                 inputs=[effects_sheet, effects_state],
-                outputs=[effects_sheet, output_effects_json, effects_state]
+                outputs=[effects_state, output_effects_json]
             )
             
             demo.load(
