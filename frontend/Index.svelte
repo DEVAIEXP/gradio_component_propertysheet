@@ -229,7 +229,17 @@
         // Dispatch the full, updated value object to the backend.
         gradio.dispatch("change", value);
     }
-
+    /**
+     * Handles changes from a multiselect checkbox group.
+     * The `bind:group` directive already updated the local `prop.value` array.
+     * We just need to dispatch the entire component's state to the backend.
+     */
+    async function handle_multiselect_change() {
+        // Wait for Svelte to process the binding update.
+        await tick();
+        // Dispatch the full, updated value object to the backend.
+        gradio.dispatch("change", value);
+    }
     /**
      * Resets a single property to its initial value, which was stored on mount.
      * It dispatches the entire updated `value` object to the backend.
@@ -479,6 +489,24 @@
                                                                             value={choice}
                                                                             bind:group={prop.value}
                                                                             disabled={!is_interactive}
+                                                                        >
+                                                                        <label for="{prop.name}-{choice}">{choice}</label>
+                                                                    </div>
+                                                                {/each}
+                                                            {/if}
+                                                        </div>
+                                                    {:else if prop.component === 'multiselect_checkbox'}
+                                                        <div class="multiselect-group" class:disabled={!is_interactive}>
+                                                            {#if Array.isArray(prop.choices)}
+                                                                {#each prop.choices as choice}
+                                                                    <div class="multiselect-item">
+                                                                        <input 
+                                                                            type="checkbox"
+                                                                            id="{prop.name}-{choice}"
+                                                                            value={choice}
+                                                                            bind:group={prop.value}
+                                                                            disabled={!is_interactive}
+                                                                            on:change={() => handle_multiselect_change()}
                                                                         >
                                                                         <label for="{prop.name}-{choice}">{choice}</label>
                                                                     </div>
@@ -926,4 +954,32 @@
 		border-color: var(--neutral-300);
 		color: var(--neutral-500);
 	}
+    .multiselect-group {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+        width: 100%;
+        max-height: 150px; /* Or a height that fits your design */
+        overflow-y: auto;
+        border: 1px solid var(--border-color-primary);
+        padding: var(--spacing-sm);
+        background-color: var(--input-background-fill);
+    }
+
+    .multiselect-item {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+
+    .multiselect-item label {
+        font-size: var(--text-sm);
+        color: var(--body-text-color);
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .multiselect-group.disabled .multiselect-item label {
+        cursor: not-allowed;
+    }
 </style>

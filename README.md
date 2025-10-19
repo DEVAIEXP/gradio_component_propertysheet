@@ -10,7 +10,7 @@ app_file: space.py
 ---
 
 # `gradio_propertysheet`
-<img alt="Static Badge" src="https://img.shields.io/badge/version%20-%200.0.17%20-%20blue"> <a href="https://huggingface.co/spaces/elismasilva/gradio_propertysheet"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-blue"></a><p><span>💻 <a href='https://github.com/DEVAIEXP/gradio_component_propertysheet'>Component GitHub Code</a></span></p>
+<img alt="Static Badge" src="https://img.shields.io/badge/version%20-%200.0.18%20-%20blue"> <a href="https://huggingface.co/spaces/elismasilva/gradio_propertysheet"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-blue"></a><p><span>💻 <a href='https://github.com/DEVAIEXP/gradio_component_propertysheet'>Component GitHub Code</a></span></p>
 
 The **PropertySheet** component for Gradio allows you to automatically generate a complete and interactive settings panel from a standard Python `dataclass`. It's designed to bring the power of IDE-like property editors directly into your Gradio applications.
 
@@ -50,12 +50,52 @@ import os
 import json
 import gradio as gr
 from dataclasses import dataclass, field, asdict
-from typing import Literal
+from typing import List, Literal
 from gradio_propertysheet import PropertySheet
 from gradio_htmlinjector import HTMLInjector
 
+PAG_LAYERS = {
+    "down.blocks.1": "down.blocks.1",
+    "down.blocks.1.attn.0": "down.blocks.1.attentions.0",
+    "down.blocks.1.attn.1": "down.blocks.1.attentions.1",
+    "down.blocks.2": "down.blocks.2",
+    "down.blocks.2.attn.0": "down.blocks.2.attentions.0",
+    "down.blocks.2.attn.1": "down.blocks.2.attentions.1",
+    "mid": "mid",
+    "up.blocks.0": "up.blocks.0",
+    "up.blocks.0.attn.0": "up.blocks.0.attentions.0",
+    "up.blocks.0.attn.1": "up.blocks.0.attentions.1",
+    "up.blocks.0.attn.2": "up.blocks.0.attentions.2",
+    "up.blocks.1": "up.blocks.1",
+    "up.blocks.1.attn.0": "up.blocks.1.attentions.0",
+    "up.blocks.1.attn.1": "up.blocks.1.attentions.1",
+    "up.blocks.1.attn.2": "up.blocks.1.attentions.2",  
+}
 
 # --- 1. Dataclass Definitions ---
+@dataclass
+class PAGSettings:
+    """Defines settings for Perturbed Attention Guidance."""
+    enable_pag: bool = field(default=False, metadata={"label": "Enable PAG"})
+  
+    pag_layers: List[str] = field(
+        default_factory=list,  # Use default_factory for mutable types like lists
+        metadata={
+            "component": "multiselect_checkbox", # Our new custom component type
+            "choices": list(PAG_LAYERS.keys()),  # Provide the list of all possible options
+            "label": "PAG Layers",
+            "interactive_if": {"field": "enable_pag", "value": True},
+            "help": "Select the UNet layers where Perturbed Attention Guidance should be applied."
+        }
+    )  
+    pag_scale: float = field(default=3.0,  metadata={
+            "component": "slider",
+            "label": "PAG Scale",
+            "minimum": 0.0,
+            "maximum": 1.0,
+            "step": 0.01            
+        })
+    
 @dataclass
 class EffectBase:
     """Base class with common effect settings."""
@@ -307,6 +347,7 @@ class RenderConfig:
         default_factory=QuantizationSettings,
         metadata={"label": "Quantization Settings"}
     )
+    pag_settings: PAGSettings = field(default_factory=PAGSettings, metadata={"label": "PAG Settings"})
     tile_size: Literal[1024, 1280] = field(
         default=1280, 
         metadata={
