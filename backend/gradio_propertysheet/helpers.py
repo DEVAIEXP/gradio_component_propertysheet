@@ -1,51 +1,58 @@
+import ast
 from dataclasses import fields, is_dataclass
 import dataclasses
 from typing import Any, Dict, List, Literal, Type, get_args, get_origin, get_type_hints
 
 
-def infer_type(s: str):
+def infer_type(s: Any):
     """
     Infers and converts a string to the most likely data type.
 
     It attempts conversions in the following order:
-    1. Integer
-    2. Float
-    3. Boolean (case-insensitive 'true' or 'false')
+    1. Python literal (list, dict, tuple, etc.) if the string looks like one.
+    2. Integer
+    3. Float
+    4. Boolean (case-insensitive 'true' or 'false')
     If all conversions fail, it returns the original string.
 
     Args:
-        s: The input string to be converted.
+        s: The input value to be converted.
 
     Returns:
-        The converted value (int, float, bool) or the original string.
+        The converted value or the original value.
     """
     if not isinstance(s, str):
         # If the input is not a string, return it as is.
         return s
-
-    # 1. Try to convert to an integer
+    
+    # 1. Try to evaluate as a Python literal (list, dict, etc.)
+    s_stripped = s.strip()    
+    if s_stripped.startswith(('[', '{')) and s_stripped.endswith((']', '}')):
+        try:            
+            return ast.literal_eval(s_stripped)
+        except (ValueError, SyntaxError, MemoryError, TypeError):            
+            pass
+    
+    # 2. Try to convert to an integer
     try:
-        return int(s)
+        return int(s_stripped)
     except ValueError:
-        # Not an integer, continue...
         pass
 
-    # 2. Try to convert to a float
+    # 3. Try to convert to a float
     try:
-        return float(s)
+        return float(s_stripped)
     except ValueError:
-        # Not a float, continue...
         pass
     
-    # 3. Check for a boolean value
-    # This explicit check is important because bool('False') evaluates to True.
-    s_lower = s.lower()
+    # 4. Check for a boolean value
+    s_lower = s_stripped.lower()
     if s_lower == 'true':
         return True
     if s_lower == 'false':
         return False
         
-    # 4. If nothing else worked, return the original string
+    # 5. If nothing else worked, return the original string (sem os espaços extras)
     return s
 
 def extract_prop_metadata(cls: Type, field: dataclasses.Field) -> Dict[str, Any]:
